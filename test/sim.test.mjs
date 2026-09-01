@@ -41,12 +41,36 @@ test('countdown reaches running after three simulated seconds', () => {
   assert.equal(run.z, 0)
 })
 
-test('stepping preserves collapse state and does not mutate the input run', () => {
+test('stepping resets off-bridge collapse state without mutating the input run', () => {
   const collapse = { index: 7, timer: 1.25 }
   const run = { ...createRun(stage), mode:'running', collapse }
   const next = stepRun(run, idle, .1, stage)
-  assert.deepEqual(next.collapse, collapse)
+  assert.deepEqual(next.collapse, { index:-1, timer:0 })
   assert.notStrictEqual(next, run)
+  assert.deepEqual(run.collapse, collapse)
   assert.equal(run.time, 0)
   assert.equal(run.z, 0)
+})
+
+test('crossing the finish enters success state', () => {
+  const short = { timeLimit:45, length:1, obstacles:[[3,1,0,24,0]] }
+  let run = { ...createRun(short), mode:'running', speed:30 }
+  run = stepRun(run, idle, .1, short)
+  assert.equal(run.mode, 'success')
+})
+
+test('a collapsing bridge becomes lava after its delay', () => {
+  const bridge = { timeLimit:45, length:100, obstacles:[[2,10,0,12,.1],[3,100,0,24,0]] }
+  let run = { ...createRun(bridge), mode:'running', z:10, speed:12 }
+  run = stepRun(run, idle, .1, bridge)
+  assert.equal(run.mode, 'failure')
+  assert.equal(run.failReason, 'LAVA')
+})
+
+test('a hazard at the finish takes precedence over success', () => {
+  const finishFire = { timeLimit:45, length:1, obstacles:[[0,1,0,24,3],[3,1,0,24,0]] }
+  let run = { ...createRun(finishFire), mode:'running', speed:30 }
+  run = stepRun(run, idle, .1, finishFire)
+  assert.equal(run.mode, 'failure')
+  assert.equal(run.failReason, 'FIRE')
 })

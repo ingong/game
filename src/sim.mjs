@@ -1,4 +1,5 @@
 import { clamp } from './math.mjs'
+import { bridgeIndexAt, hazardAt } from './stage.mjs'
 
 const makeCollapse = () => ({ index:-1, timer:0 })
 
@@ -51,5 +52,15 @@ export function stepRun(run, input, dt, stage) {
     next.mode = 'failure'
     next.failReason = 'TIME'
   }
+  const bridge = next.grounded ? bridgeIndexAt(stage, next.x, next.z) : -1
+  if (bridge < 0) next.collapse = makeCollapse()
+  else if (next.collapse.index === bridge) next.collapse.timer += dt
+  else next.collapse = { index:bridge, timer:dt }
+
+  const hazard = hazardAt(stage, next)
+  if (hazard) {
+    next.mode = 'failure'
+    next.failReason = hazard
+  } else if (next.mode === 'running' && next.z >= stage.length) next.mode = 'success'
   return next
 }
