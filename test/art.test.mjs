@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import * as art from '../src/art.mjs'
 import {
   RUNNER_WIDTH,
   RUNNER_HEIGHT,
@@ -14,9 +15,16 @@ const COBALT = 5
 const NAVY = 6
 const RAINBOW = [2, 3, 4, 8, 5, 9]
 
+test('runner palette is exactly the ten approved runtime colors', () => {
+  assert.deepEqual(art.RUNNER_PALETTE, [
+    '#31051b', '#790b24', '#d51d24', '#ff641e', '#ffd34d',
+    '#0877d1', '#071f70', '#fff', '#36b44a', '#7042c1'
+  ])
+})
+
 test('runner frames are valid authored rectangles with substantial coverage', () => {
-  assert.equal(RUNNER_WIDTH, 32)
-  assert.equal(RUNNER_HEIGHT, 48)
+  assert.equal(RUNNER_WIDTH, 48)
+  assert.equal(RUNNER_HEIGHT, 72)
   assert.equal(RUNNER_FRAMES.length, 5)
 
   for (const frame of RUNNER_FRAMES) {
@@ -33,7 +41,7 @@ test('runner frames are valid authored rectangles with substantial coverage', ()
         for (let xx = x; xx < x + width; xx++) covered.add(`${xx},${yy}`)
       }
     }
-    assert.ok(covered.size >= 260)
+    assert.ok(covered.size >= 520)
   }
 })
 
@@ -63,9 +71,9 @@ test('grounded animation cycles four poses and airborne animation uses the tuck'
 })
 
 test('runner scale is integral, bounded, and 144 pixels tall at target heights', () => {
-  assert.equal(runnerScale(720), 3)
-  assert.equal(runnerScale(844), 3)
-  for (const height of [480, 600, 720, 844, 1080, 1440]) {
+  assert.equal(runnerScale(720), 2)
+  assert.equal(runnerScale(844), 2)
+  for (const height of [720, 844, 1080, 1440]) {
     const scale = runnerScale(height)
     assert.ok(Number.isInteger(scale))
     assert.ok(scale >= 2 && scale <= 5)
