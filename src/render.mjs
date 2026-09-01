@@ -12,6 +12,10 @@ const NAVY = '#071f70'
 const WHITE = '#fff'
 const NEAR = 1
 const FAR = 440
+const RUNNER_WORLD_TO_ART = .14
+
+export const stageElevation = (stage, z) =>
+  roadAt(stage, Math.min(z, stage.length))?.elevation ?? 0
 
 function polygon(ctx, color, points) {
   ctx.fillStyle = color
@@ -234,10 +238,11 @@ export function render(ctx, run, camera, stage, width, height) {
     .filter(item => item.depth > 0 && item.depth <= FAR)
     .sort((a, b) => b.depth - a.depth)
 
-  const elevation = roadAt(stage, run.z)?.elevation ?? 0
+  const elevation = stageElevation(stage, run.z)
   const player = projectPoint(camera, run.x, elevation + run.y, run.z, width, height)
   for (const item of visible) if (item.depth >= player.depth) drawObstacle(ctx, item, run, camera, stage, width, height)
-  drawRunner(ctx, run, player.x, player.y, runnerScale(width, height) * player.scale)
+  drawRunner(ctx, run, player.x, player.y,
+    runnerScale(width, height) * player.scale * RUNNER_WORLD_TO_ART)
   for (const item of visible) if (item.depth < player.depth) drawObstacle(ctx, item, run, camera, stage, width, height)
   drawHud(ctx, run, width, height)
 }

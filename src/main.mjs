@@ -1,9 +1,9 @@
 import { createCamera, stepCamera } from './camera.mjs'
 import { createInput } from './input.mjs'
 import { logicalViewport } from './math.mjs'
-import { render } from './render.mjs'
+import { render, stageElevation } from './render.mjs'
 import { createRun, restartRun, stepRun } from './sim.mjs'
-import { RED_STAGE, roadAt } from './stage.mjs'
+import { RED_STAGE } from './stage.mjs'
 
 const STEP = 1 / 120
 const MAX_ACCUMULATOR = .1
@@ -14,7 +14,7 @@ export function startGame(canvas, target = window) {
 
   const input = createInput(target)
   let run = createRun(RED_STAGE)
-  let camera = createCamera(run, roadAt(RED_STAGE, run.z).elevation)
+  let camera = createCamera(run, stageElevation(RED_STAGE, run.z))
   let accumulator = 0
   let previous = null
   let frameId = 0
@@ -37,11 +37,10 @@ export function startGame(canvas, target = window) {
       const controls = input.read()
       if (controls.jumpPressed && (run.mode === 'title' || run.mode === 'success' || run.mode === 'failure')) {
         run = restartRun(RED_STAGE)
-        camera = createCamera(run, roadAt(RED_STAGE, run.z).elevation)
+        camera = createCamera(run, stageElevation(RED_STAGE, run.z))
       } else {
         run = stepRun(run, controls, STEP, RED_STAGE)
-        const elevation = roadAt(RED_STAGE, run.z)?.elevation ?? 0
-        camera = stepCamera(camera, run, STEP, elevation)
+        camera = stepCamera(camera, run, STEP, stageElevation(RED_STAGE, run.z))
       }
       accumulator -= STEP
     }

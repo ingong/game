@@ -46,6 +46,18 @@ test('render draws road, projected runner, and HUD without DOM or images', () =>
   assert.ok(ctx.calls.some(call => call[0] === 'fillText' && call[1] === 'RED 1'))
 })
 
+test('runner root scale stays readable in the default logical chase view', () => {
+  const run = { ...createRun(RED_STAGE), mode:'running', z:200 }
+  const ctx = recordingContext()
+
+  render(ctx, run, createCamera(run), RED_STAGE, 320, 180)
+
+  const anchor = runnerAnchor(ctx.calls)
+  const rootScale = ctx.calls.slice(anchor + 1).find(call => call[0] === 'scale')
+  assert.ok(rootScale[1] >= .8 && rootScale[1] <= 1.2, `runner root scale ${rootScale[1]}`)
+  assert.equal(rootScale[1], rootScale[2])
+})
+
 test('runner world anchor responds to steering and jumping against a fixed camera', () => {
   const base = { ...createRun(RED_STAGE), mode:'running', z:200 }
   const camera = createCamera(base)
@@ -71,4 +83,14 @@ test('obstacle art disappears after its world plane passes behind the camera', (
   render(behind, run, camera, flameStage, 320, 180)
 
   assert.deepEqual(behind.calls, empty.calls)
+})
+
+test('a run beyond the finish keeps the final section elevation', () => {
+  const run = { ...createRun(RED_STAGE), mode:'success', z:1001 }
+  const camera = { x:0, y:0, z:980, horizon:.3, focal:.9, shakeX:0, shakeY:0 }
+  const ctx = recordingContext()
+
+  render(ctx, run, camera, RED_STAGE, 320, 180)
+
+  assert.deepEqual(ctx.calls[runnerAnchor(ctx.calls)], ['translate', 160, 8])
 })
