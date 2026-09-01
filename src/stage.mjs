@@ -25,7 +25,7 @@ export function validateStage(stage) {
   for (const obstacle of stage.obstacles) {
     const [type, z, , width] = obstacle
     if (z < previous) errors.push('obstacle positions are not sorted')
-    if (type < 0 || type > 3) errors.push('unknown obstacle type')
+    if (![0,1,2,3].includes(type)) errors.push('unknown obstacle type')
     if (!(width > 0)) errors.push('obstacle width must be positive')
     previous = z
   }
@@ -49,7 +49,7 @@ export function surfaceAt(stage, x, z, collapse) {
 
 export function hazardAt(stage, run) {
   for (const obstacle of stage.obstacles) {
-    if (obstacle[0] === 0 && spansX(obstacle, run.x) && Math.abs(run.z - obstacle[1]) <= 3 && run.y < 4) return 'FIRE'
+    if (obstacle[0] === 0 && spansX(obstacle, run.x) && Math.abs(run.z - obstacle[1]) <= 3 && run.y < obstacle[4]) return 'FIRE'
   }
   return run.y <= 0 && surfaceAt(stage, run.x, run.z, run.collapse) === null ? 'LAVA' : null
 }

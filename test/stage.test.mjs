@@ -15,6 +15,21 @@ test('a grounded runner touching a flame bar is hit', () => {
   assert.equal(hazardAt(RED_STAGE, { x:flame[2], y:8, z:flame[1] }), null)
 })
 
+test('flame hazards use each tuple height as their upper boundary', () => {
+  const stage = { timeLimit:45, length:100, obstacles:[[0,20,0,24,3],[0,40,0,24,5],[3,100,0,24,0]] }
+  assert.equal(hazardAt(stage, { x:0, y:2.99, z:20 }), 'FIRE')
+  assert.equal(hazardAt(stage, { x:0, y:3, z:20 }), null)
+  assert.equal(hazardAt(stage, { x:0, y:4.99, z:40 }), 'FIRE')
+  assert.equal(hazardAt(stage, { x:0, y:5, z:40 }), null)
+})
+
+test('stage validation rejects non-enum obstacle types', () => {
+  for (const type of [1.5, NaN, 'flame']) {
+    const stage = { timeLimit:45, length:100, obstacles:[[type,20,0,24,0],[3,100,0,24,0]] }
+    assert.ok(validateStage(stage).includes('unknown obstacle type'))
+  }
+})
+
 test('gaps and collapsed bridges do not support the runner', () => {
   const gap = { timeLimit:45, length:100, obstacles:[[1,20,0,24,10],[3,100,0,24,0]] }
   const bridge = { timeLimit:45, length:100, obstacles:[[2,20,0,12,.5],[3,100,0,24,0]] }
