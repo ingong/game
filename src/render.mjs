@@ -1,4 +1,5 @@
 import { clamp, projectPoint, roadEdges } from './math.mjs'
+import { drawPixelRunner } from './art.mjs'
 
 const INK = '#31051b'
 const ROAD = '#790b24'
@@ -8,11 +9,8 @@ const YELLOW = '#ffd34d'
 const COBALT = '#0877d1'
 const NAVY = '#071f70'
 const WHITE = '#fff'
-const RAINBOW = [SKY, ORANGE, YELLOW, WHITE, COBALT, NAVY]
-
 const NEAR = 34
 const FAR = 440
-const PLAYER_DEPTH = 40
 const FOREGROUND = 70
 
 function polygon(ctx, color, points) {
@@ -78,23 +76,26 @@ function drawFlame(ctx, obstacle, distance, width, height) {
   const base = projectPoint(x, 0, distance, width, height)
   const left = projectPoint(x - span / 2, 0, distance, width, height).x
   const right = projectPoint(x + span / 2, 0, distance, width, height).x
-  const barHeight = Math.max(5, flameHeight * base.scale)
-  const top = base.y - barHeight
+  const barHeight = Math.max(6, Math.round(flameHeight * base.scale))
+  const cell = Math.max(2, Math.round(base.scale * .7))
+  const x0 = Math.round(left)
+  const x1 = Math.round(right)
+  const y = Math.round(base.y)
+  const top = y - barHeight
 
   ctx.fillStyle = INK
-  ctx.fillRect(left, base.y, right - left, Math.max(2, base.scale * 1.2))
+  ctx.fillRect(x0, y, x1 - x0, cell)
+  ctx.fillStyle = SKY
+  ctx.fillRect(x0, top, x1 - x0, barHeight)
+  ctx.fillRect(x0 + cell, top - cell * 2, cell * 2, cell * 2)
+  ctx.fillRect(x1 - cell * 3, top - cell * 3, cell * 2, cell * 3)
+  ctx.fillRect(Math.round((x0 + x1) / 2) - cell, top - cell * 4, cell * 2, cell * 4)
   ctx.fillStyle = ORANGE
-  ctx.fillRect(left, top, right - left, barHeight)
+  ctx.fillRect(x0 + cell, top + cell, Math.max(cell, x1 - x0 - cell * 2), barHeight - cell)
+  ctx.fillRect(Math.round((x0 + x1) / 2) - cell, top - cell * 2, cell * 2, cell * 3)
   ctx.fillStyle = YELLOW
-  ctx.fillRect(left, top, right - left, Math.max(2, barHeight * .35))
-
-  const tipWidth = (right - left) / 3
-  for (let i = 0; i < 3; i++) {
-    const x0 = left + tipWidth * i
-    polygon(ctx, i === 1 ? YELLOW : ORANGE, [
-      [x0, top], [x0 + tipWidth * .48, top - barHeight * (i === 1 ? .9 : .6)], [x0 + tipWidth, top]
-    ])
-  }
+  ctx.fillRect(x0 + cell * 2, top + cell * 2, Math.max(cell, x1 - x0 - cell * 4), Math.max(cell, barHeight - cell * 2))
+  ctx.fillRect(Math.round((x0 + x1) / 2), top - cell, cell, cell * 3)
 }
 
 function drawGap(ctx, obstacle, distance, width, height) {
@@ -119,9 +120,17 @@ function drawBridge(ctx, obstacle, index, distance, run, width, height) {
   const near = Math.max(NEAR, distance - halfDepth)
   const far = Math.max(near + 1, distance + halfDepth)
   const color = progress > .45 ? INK : progress > 0 ? ROAD : WHITE
+  const edge = progress > .45 ? ROAD : COBALT
 
   projectedQuad(ctx, color, x - tileSpan / 2, x + tileSpan / 2, near, far, width, height)
-  projectedQuad(ctx, COBALT, x - tileSpan * .06, x + tileSpan * .06, near, far, width, height)
+  projectedQuad(ctx, edge, x - tileSpan / 2, x + tileSpan / 2, near, near + (far - near) * .12, width, height)
+  projectedQuad(ctx, edge, x - tileSpan * .035, x + tileSpan * .035, near, far, width, height)
+
+  const crack = projectPoint(x + tileSpan * .2, 0, (near + far) / 2, width, height)
+  const pixel = Math.max(1, Math.round(crack.scale * .45))
+  ctx.fillStyle = progress ? INK : ROAD
+  ctx.fillRect(Math.round(crack.x), Math.round(crack.y), pixel * 3, pixel)
+  ctx.fillRect(Math.round(crack.x) + pixel * 2, Math.round(crack.y) - pixel, pixel, pixel * 3)
 }
 
 function drawFinish(ctx, obstacle, distance, width, height) {
@@ -138,11 +147,13 @@ function drawFinish(ctx, obstacle, distance, width, height) {
   ctx.fillRect(right - column / 2, top, column, archHeight)
   ctx.fillRect(left - column / 2, top, right - left + column, column * 2.2)
 
-  const checks = 8
+  const checks = 10
   const cell = (right - left + column) / checks
-  for (let i = 0; i < checks; i++) {
-    ctx.fillStyle = i % 2 ? INK : YELLOW
-    ctx.fillRect(left - column / 2 + i * cell, top, cell, column * 1.1)
+  for (let row = 0; row < 2; row++) {
+    for (let i = 0; i < checks; i++) {
+      ctx.fillStyle = (i + row) % 2 ? INK : WHITE
+      ctx.fillRect(left - column / 2 + i * cell, top + row * column, cell + 1, column)
+    }
   }
 }
 
@@ -152,67 +163,6 @@ function drawObstacle(ctx, item, run, width, height) {
   else if (obstacle[0] === 1) drawGap(ctx, obstacle, distance, width, height)
   else if (obstacle[0] === 2) drawBridge(ctx, obstacle, index, distance, run, width, height)
   else drawFinish(ctx, obstacle, distance, width, height)
-}
-
-function drawLimb(ctx, color, x, y, width, length, angle) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(angle)
-  ctx.fillStyle = color
-  ctx.fillRect(-width / 2, 0, width, length)
-  ctx.restore()
-}
-
-function drawRunner(ctx, run, width, height) {
-  const point = projectPoint(run.x, run.y, PLAYER_DEPTH, width, height)
-  const size = Math.min(height * .22, width * .18, 112)
-  const footY = clamp(point.y, height * .58, height * .95)
-  const stride = run.grounded ? Math.sin(run.anim) * 8 : 0
-  const counter = run.grounded ? Math.cos(run.anim) * 7 : 0
-
-  ctx.save()
-  ctx.translate(point.x, footY)
-  ctx.scale(size / 100, size / 100)
-
-  for (let i = 0; i < RAINBOW.length; i++) {
-    const y = -54 + i * 2.8
-    polygon(ctx, RAINBOW[i], [[-24, y], [-42 - i * 1.2, y + 8], [-23, y + 4]])
-  }
-
-  if (run.grounded) {
-    drawLimb(ctx, NAVY, -11, -35, 13, 31 + stride, -.08 - counter * .01)
-    drawLimb(ctx, WHITE, 11, -35, 13, 31 - stride, .08 + counter * .01)
-  } else {
-    drawLimb(ctx, NAVY, -12, -37, 13, 23, -.58)
-    drawLimb(ctx, WHITE, 12, -37, 13, 23, .58)
-    drawLimb(ctx, WHITE, -22, -20, 11, 18, .75)
-    drawLimb(ctx, WHITE, 22, -20, 11, 18, -.75)
-  }
-
-  polygon(ctx, COBALT, [[-22, -46], [22, -46], [18, -29], [-18, -29]])
-  ctx.fillStyle = NAVY
-  ctx.fillRect(-22, -43, 8, 13)
-
-  drawLimb(ctx, NAVY, -23, -72, 15, 37, -.18 + counter * .012)
-  drawLimb(ctx, WHITE, 23, -72, 15, 37, .18 - counter * .012)
-  ctx.fillStyle = WHITE
-  ctx.fillRect(-25, -78, 50, 36)
-  polygon(ctx, NAVY, [[-25, -78], [-8, -78], [-12, -42], [-25, -42]])
-  polygon(ctx, WHITE, [[-28, -75], [-18, -84], [18, -84], [29, -74], [24, -61], [-24, -61]])
-
-  polygon(ctx, NAVY, [[-7, -87], [12, -91], [26, -84], [24, -69], [4, -66], [-10, -75]])
-  polygon(ctx, WHITE, [[-11, -91], [8, -100], [24, -94], [31, -84], [21, -72], [-4, -74], [-15, -83]])
-  polygon(ctx, WHITE, [[18, -94], [36, -89], [28, -81], [18, -82]])
-  polygon(ctx, NAVY, [[13, -98], [24, -103], [21, -93]])
-  polygon(ctx, YELLOW, [[2, -99], [10, -116], [14, -97]])
-  ctx.fillStyle = NAVY
-  ctx.fillRect(23, -89, 4, 4)
-
-  for (let i = 0; i < RAINBOW.length; i++) {
-    ctx.fillStyle = RAINBOW[i]
-    ctx.fillRect(-14 - (i % 2) * 2, -96 + i * 3.1, 7, 4)
-  }
-  ctx.restore()
 }
 
 function formatTime(seconds) {
@@ -267,7 +217,7 @@ export function render(ctx, run, stage, width, height) {
     .sort((a, b) => b.distance - a.distance)
 
   for (const item of visible) if (item.distance >= FOREGROUND) drawObstacle(ctx, item, run, width, height)
-  drawRunner(ctx, run, width, height)
+  drawPixelRunner(ctx, run, width, height)
   for (const item of visible) if (item.distance < FOREGROUND) drawObstacle(ctx, item, run, width, height)
   drawHud(ctx, run, width, height)
 }
