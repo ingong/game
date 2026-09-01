@@ -1,183 +1,80 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import * as art from '../src/art.mjs'
-import {
-  RUNNER_WIDTH,
-  RUNNER_HEIGHT,
-  RUNNER_FRAMES,
-  RUNNER_SHEET_SRC,
-  RUNNER_SHEET_FRAMES,
-  runnerFrameIndex,
-  runnerDisplayHeight,
-  runnerScale,
-  createRunnerSheet,
-  drawRunner,
-  drawPixelRunner
-} from '../src/art.mjs'
 
-const WHITE = 7
-const COBALT = 5
-const NAVY = 6
-const RAINBOW = [2, 3, 4, 8, 5, 9]
+const POSES = [
+  [0,-2,1,2,-1,2,-1,-2,1,0],
+  [0,-1,0,1,0,1,0,-1,0,1],
+  [1,1,-1,-1,1,-1,2,1,-2,0],
+  [0,2,-1,-2,1,-2,1,2,-1,-1],
+  [0,1,0,-1,0,-1,0,1,0,0],
+  [-1,-1,1,1,-1,1,-2,-1,2,1],
+  [-1,-2,-1,2,1,-1,-2,1,-2,-2],
+  [1,2,2,-2,-2,2,-1,-2,1,-3],
+  [3,-3,2,-1,1,-3,1,-2,0,2],
+  [0,1,1,-1,-1,1,1,-1,-1,3]
+]
 
-test('runner palette is exactly the ten approved runtime colors', () => {
-  assert.deepEqual(art.RUNNER_PALETTE, [
-    '#31051b', '#790b24', '#d51d24', '#ff641e', '#ffd34d',
-    '#0877d1', '#071f70', '#fff', '#36b44a', '#7042c1'
-  ])
-})
-
-test('runner frames are valid authored rectangles with substantial coverage', () => {
-  assert.equal(RUNNER_WIDTH, 48)
-  assert.equal(RUNNER_HEIGHT, 72)
-  assert.equal(RUNNER_FRAMES.length, 5)
-
-  for (const frame of RUNNER_FRAMES) {
-    const covered = new Set()
-    for (const run of frame) {
-      assert.equal(run.length, 5)
-      assert.ok(run.every(Number.isInteger))
-      const [, x, y, width, height] = run
-      assert.ok(width > 0 && height > 0)
-      assert.ok(x >= 0 && y >= 0)
-      assert.ok(x + width <= RUNNER_WIDTH)
-      assert.ok(y + height <= RUNNER_HEIGHT)
-      for (let yy = y; yy < y + height; yy++) {
-        for (let xx = x; xx < x + width; xx++) covered.add(`${xx},${yy}`)
-      }
-    }
-    assert.ok(covered.size >= 520)
-  }
-})
-
-test('all five frames have distinct authored signatures', () => {
-  assert.equal(new Set(RUNNER_FRAMES.map(JSON.stringify)).size, 5)
-})
-
-test('every frame preserves the white, blue, navy, and six-hue identity', () => {
-  for (const frame of RUNNER_FRAMES) {
-    const colors = new Set(frame.map(run => run[0]))
-    assert.ok(colors.has(WHITE))
-    assert.ok(colors.has(COBALT))
-    assert.ok(colors.has(NAVY))
-    for (const color of RAINBOW) assert.ok(colors.has(color))
-  }
-})
-
-test('grounded animation cycles four poses and airborne animation uses the tuck', () => {
-  const grounded = new Set()
-  for (let anim = 0; anim < 8; anim += .25) {
-    grounded.add(runnerFrameIndex({ grounded:true, anim }))
-  }
-  assert.deepEqual([...grounded].sort(), [0, 1, 2, 3])
-  for (const anim of [0, 1, 99]) {
-    assert.equal(runnerFrameIndex({ grounded:false, anim }), 4)
-  }
-})
-
-test('approved sheet exposes five tight source crops in animation order', () => {
-  assert.equal(RUNNER_SHEET_SRC, './assets/unicorn-runner-sprite-concept.png')
-  assert.deepEqual(RUNNER_SHEET_FRAMES, [
-    [21, 50, 323, 727],
-    [399, 64, 360, 713],
-    [841, 63, 322, 714],
-    [1217, 81, 332, 696],
-    [1581, 0, 391, 592]
-  ])
-  for (const [x, y, width, height] of RUNNER_SHEET_FRAMES) {
-    assert.ok(x >= 0 && y >= 0)
-    assert.ok(width > 0 && height > 0)
-    assert.ok(x + width <= 1983)
-    assert.ok(y + height <= 793)
-  }
-})
-
-test('runner sheet loader requests only the local approved asset', () => {
-  const image = { src:'', decoding:'' }
-  const document = {
-    createElement(tag) {
-      assert.equal(tag, 'img')
-      return image
-    }
-  }
-
-  assert.equal(createRunnerSheet(document), image)
-
-  assert.equal(image.decoding, 'async')
-  assert.equal(image.src, RUNNER_SHEET_SRC)
-})
-
-test('ready sheet renders the selected crop near 180 pixels tall', () => {
-  const drawCalls = []
-  const fillCalls = []
-  const ctx = {
-    imageSmoothingEnabled:true,
-    drawImage(...args) { drawCalls.push(args) },
-    fillRect(...args) { fillCalls.push(args) }
-  }
-  const image = { complete:true, naturalWidth:1983 }
-
-  drawRunner(ctx, { x:0, y:0, grounded:false, anim:0 }, 1280, 720, image)
-
-  assert.equal(drawCalls.length, 1)
-  assert.equal(fillCalls.length, 0)
-  assert.equal(drawCalls[0][0], image)
-  assert.deepEqual(drawCalls[0].slice(1, 5), RUNNER_SHEET_FRAMES[4])
-  assert.equal(drawCalls[0][8], 180)
-})
-
-test('loading or failed sheet uses the code-native fallback', () => {
-  const drawCalls = []
-  const fillCalls = []
-  const ctx = {
-    imageSmoothingEnabled:true,
-    fillStyle:'',
-    drawImage(...args) { drawCalls.push(args) },
-    fillRect(...args) { fillCalls.push(args) }
-  }
-
-  drawRunner(ctx, { x:0, y:0, grounded:true, anim:0 }, 1280, 720, {
-    complete:false,
-    naturalWidth:0
-  })
-
-  assert.equal(drawCalls.length, 0)
-  assert.equal(fillCalls.length, RUNNER_FRAMES[0].length)
-})
-
-test('sheet display height stays within the approved gameplay range', () => {
-  assert.equal(runnerDisplayHeight(720), 180)
-  assert.equal(runnerDisplayHeight(844), 190)
-  for (const height of [480, 720, 844, 1080]) {
-    assert.ok(runnerDisplayHeight(height) >= 180)
-    assert.ok(runnerDisplayHeight(height) <= 190)
-  }
-})
-
-test('runner scale is integral, bounded, and 144 pixels tall at target heights', () => {
-  assert.equal(runnerScale(720), 2)
-  assert.equal(runnerScale(844), 2)
-  for (const height of [720, 844, 1080, 1440]) {
-    const scale = runnerScale(height)
-    assert.ok(Number.isInteger(scale))
-    assert.ok(scale >= 2 && scale <= 5)
-    assert.ok(scale * RUNNER_HEIGHT <= height * .22)
-  }
-})
-
-test('pixel runner disables smoothing and renders the selected frame with fillRect', () => {
+function recordingContext() {
   const calls = []
-  const ctx = {
+  return {
+    calls,
     imageSmoothingEnabled:true,
     fillStyle:'',
-    fillRect(...rect) { calls.push([this.fillStyle, ...rect]) }
+    save() { calls.push(['save']) },
+    restore() { calls.push(['restore']) },
+    translate(x, y) { calls.push(['translate', x, y]) },
+    rotate(angle) { calls.push(['rotate', angle]) },
+    scale(x, y) { calls.push(['scale', x, y]) },
+    fillRect(x, y, width, height) {
+      calls.push(['fillRect', this.fillStyle, x, y, width, height])
+    }
   }
-  const run = { x:0, y:0, grounded:false, anim:0 }
+}
 
-  drawPixelRunner(ctx, run, 1280, 720)
+test('runner uses the exact articulated pose table', () => {
+  assert.deepEqual(art.RUNNER_POSES, POSES)
+})
+
+test('runner exposes six run phases and distinct airborne feedback', () => {
+  const phases = new Set(Array.from({ length:6 }, (_, i) =>
+    art.runnerPose({ anim:i / 6, grounded:true, jumps:0, stumble:0, landing:0 })
+  ))
+  assert.equal(phases.size, 6)
+  assert.notEqual(
+    art.runnerPose({ anim:0, grounded:false, jumps:1, stumble:0, landing:0 }),
+    art.runnerPose({ anim:0, grounded:false, jumps:2, stumble:0, landing:0 })
+  )
+})
+
+test('stumble and landing feedback take priority over locomotion poses', () => {
+  assert.equal(art.runnerPose({ anim:0, grounded:false, jumps:2, stumble:.1, landing:1 }), 8)
+  assert.equal(art.runnerPose({ anim:0, grounded:true, jumps:0, stumble:0, landing:.46 }), 9)
+  assert.equal(art.runnerPose({ anim:0, grounded:false, jumps:2, stumble:0, landing:0 }), 7)
+  assert.equal(art.runnerPose({ anim:0, grounded:false, jumps:1, stumble:0, landing:0 }), 6)
+})
+
+test('runner scale responds to the smaller screen dimension and stays bounded', () => {
+  assert.equal(art.runnerScale(1280, 720), 1)
+  assert.equal(art.runnerScale(375, 667), .8)
+  assert.equal(art.runnerScale(2560, 1440), 1.25)
+})
+
+test('articulated runner draws required identity colors at a quantized screen anchor', () => {
+  const ctx = recordingContext()
+  art.drawRunner(ctx, { anim:0, grounded:true, jumps:0, stumble:0, landing:0 }, 100.4, 200.6, 3)
 
   assert.equal(ctx.imageSmoothingEnabled, false)
-  assert.equal(calls.length, RUNNER_FRAMES[4].length)
-  assert.ok(calls.every(([, x, y, width, height]) => [x, y, width, height].every(Number.isInteger)))
-  assert.ok(calls.every(([, , , width, height]) => width > 0 && height > 0))
+  assert.deepEqual(ctx.calls[1], ['translate', 100, 201])
+  assert.ok(ctx.calls.filter(call => call[0] === 'translate').every(([, x, y]) => Number.isInteger(x) && Number.isInteger(y)))
+
+  const colors = new Set(ctx.calls.filter(call => call[0] === 'fillRect').map(call => call[1]))
+  for (const color of art.RUNNER_PALETTE) assert.ok(colors.has(color), `missing ${color}`)
+  assert.ok(ctx.calls.filter(call => call[0] === 'fillRect' && call[1] === '#fff7e8' && call[4] === 1 && call[5] === 1).length >= 2)
+})
+
+test('runtime art has no external sprite source or projection dependency', async () => {
+  const source = await readFile(new URL('../src/art.mjs', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /RUNNER_SHEET_SRC|new Image|drawImage|projectPoint/)
 })

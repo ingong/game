@@ -1,5 +1,5 @@
 import { clamp, projectPoint, roadEdges } from './math.mjs'
-import { drawRunner } from './art.mjs'
+import { drawRunner, runnerScale } from './art.mjs'
 
 const INK = '#31051b'
 const ROAD = '#790b24'
@@ -217,7 +217,8 @@ export function render(ctx, run, stage, width, height) {
     .sort((a, b) => b.distance - a.distance)
 
   for (const item of visible) if (item.distance >= FOREGROUND) drawObstacle(ctx, item, run, width, height)
-  drawRunner(ctx, run, width, height)
+  const player = projectPoint(run.x, run.y, 40, width, height)
+  drawRunner(ctx, run, player.x, player.y, runnerScale(width, height) * player.scale)
   for (const item of visible) if (item.distance < FOREGROUND) drawObstacle(ctx, item, run, width, height)
   drawHud(ctx, run, width, height)
 }

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as esbuild from 'esbuild'
@@ -9,9 +9,6 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
 const htmlPath = resolve(dist, 'index.html')
 const zipPath = resolve(dist, 'game.zip')
-const assetRelativePath = 'assets/unicorn-runner-sprite-concept.png'
-const assetSourcePath = resolve(root, 'src', assetRelativePath)
-const assetOutputPath = resolve(dist, assetRelativePath)
 const moduleTag = '<script type="module" src="./main.mjs"></script>'
 const archiveDate = new Date('2000-01-01T00:00:00Z')
 
@@ -46,19 +43,16 @@ export async function build() {
     .replace(/>\s+</g, '><')
   assertStandaloneHtml(html)
 
-  mkdirSync(dist, { recursive: true })
-  mkdirSync(dirname(assetOutputPath), { recursive: true })
+  rmSync(dist, { recursive:true, force:true })
+  mkdirSync(dist, { recursive:true })
   writeFileSync(htmlPath, html)
-  copyFileSync(assetSourcePath, assetOutputPath)
   utimesSync(htmlPath, archiveDate, archiveDate)
-  utimesSync(assetOutputPath, archiveDate, archiveDate)
-  rmSync(zipPath, { force: true })
-  execFileSync('zip', ['-9', '-X', zipPath, 'index.html', assetRelativePath], {
+  execFileSync('zip', ['-9', '-X', zipPath, 'index.html'], {
     cwd: dist,
     stdio: 'pipe'
   })
 
-  console.log(`Built dist/index.html and dist/${assetRelativePath}`)
+  console.log('Built dist/index.html')
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await build()
