@@ -67,6 +67,21 @@ function drawLine(ctx, color, widthPx, points) {
   ctx.stroke()
 }
 
+function disc(ctx, color, x, y, radius) {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.arc(x, y, Math.max(1, radius), 0, Math.PI*2)
+  ctx.fill()
+}
+
+function ring(ctx, color, x, y, radius, widthPx = 1) {
+  ctx.strokeStyle = color
+  ctx.lineWidth = Math.max(1, widthPx)
+  ctx.beginPath()
+  ctx.arc(x, y, Math.max(1, radius), 0, Math.PI*2)
+  ctx.stroke()
+}
+
 function propBox(ctx, camera, x, y, z, boxWidth, depth, boxHeight, front, top, side, width, height) {
   const x0 = x - boxWidth / 2
   const x1 = x + boxWidth / 2
@@ -137,70 +152,79 @@ function drawThemeProp(ctx, run, camera, stage, z, index, road, width, height) {
   const side = value & 1 ? 1 : -1
   const edge = side * (road.width / 2 + 3 + value % 4)
   const elevation = road.elevation
-  const point = project(camera, edge, elevation + 4, z, width, height)
+  const point = project(camera, edge, elevation, z, width, height)
   const size = Math.max(1, point.scale)
+  const x = Math.round(point.x)
+  const y = Math.round(point.y)
   const marker = THEME_MARKERS[road.theme]
 
   if (road.theme === 0) {
-    propBox(ctx, camera, edge, elevation, z, 7 + value%4, 5, 8 + value%3,
-      marker, ORANGE, INK, width, height)
-    const door = project(camera, edge-side*.1, elevation+3.2, z-2.55, width, height)
-    ctx.fillStyle = value&2 ? YELLOW : ORANGE
-    ctx.fillRect(door.x-size*1.5, door.y-size*2, size*3, size*3)
-    drawGear(ctx, point.x + side*size*2, point.y, size*1.7, run.time*1.4 + value, marker)
-    groundQuad(ctx, STEEL, camera, stage, side*(road.width/2-2), side*(road.width/2-1), z-10, z+10, width, height)
-    groundQuad(ctx, INK, camera, stage, -4, 4, z-1, z+1, width, height)
-  } else if (road.theme === 1) {
-    propBox(ctx, camera, edge, elevation, z, 5, 18, 10, marker, INK, DEEP, width, height)
-    for (let brick = 1; brick < 4; brick++) {
-      const a = project(camera, edge-side*2.6, elevation+brick*2.1, z-9, width, height)
-      const b = project(camera, edge-side*2.6, elevation+brick*2.1, z+9, width, height)
-      drawLine(ctx, ROAD_ALT, size*.3, [a,b])
-    }
-    const pipeTop = project(camera, edge-side*3, elevation+9, z, width, height)
-    const pipeBottom = project(camera, edge-side*3, elevation+1, z, width, height)
-    drawLine(ctx, STEEL, size*.8, [pipeTop,pipeBottom])
-    drawLamp(ctx, point.x, point.y-size*2, size, ((run.time*3+index)|0)&1, YELLOW)
-    for (let puff = 0; puff < 2; puff++) {
-      ctx.globalAlpha = .3
-      ctx.fillStyle = WHITE
-      ctx.beginPath()
-      ctx.arc(point.x-side*size*puff, point.y-size*(4+puff*1.3), size*(.8+puff*.25), 0, Math.PI*2)
-      ctx.fill()
-      ctx.globalAlpha = 1
-    }
-  } else if (road.theme === 2) {
-    propBox(ctx, camera, edge, elevation+1.5, z, 10, 9, 1.2, marker, STEEL, INK, width, height)
-    groundQuad(ctx, YELLOW, camera, stage, side*(road.width/2+1), side*(road.width/2+7), z-7, z+7, width, height, -1)
-    const postBase = project(camera, edge-side*3, elevation+2.7, z-2, width, height)
-    const postTop = project(camera, edge-side*3, elevation+8, z-2, width, height)
-    drawLine(ctx, WHITE, size*.7, [postBase,postTop])
-    const fallTop = project(camera, edge+side*4, elevation+8, z+4, width, height)
-    ctx.fillStyle = marker
-    ctx.fillRect(fallTop.x-size, fallTop.y, size*2, size*7)
-    ctx.fillStyle = YELLOW
-    ctx.fillRect(fallTop.x-size*.35, fallTop.y, size*.7, size*7)
-  } else if (road.theme === 3) {
-    propBox(ctx, camera, edge, elevation, z, 7, 7, 14, marker, STEEL, INK, width, height)
-    const housing = project(camera, edge-side*2, elevation+11, z-3.6, width, height)
     ctx.fillStyle = INK
-    ctx.fillRect(housing.x-size*2.5, housing.y-size, size*5, size*2)
-    for (let stripe = 0; stripe < 3; stripe++) {
-      groundQuad(ctx, stripe&1 ? YELLOW : INK, camera, stage,
-        edge-side*5, edge+side*1, z-7+stripe*2, z-6+stripe*2, width, height)
-    }
-    drawLamp(ctx, point.x, point.y-size*4, size*1.2, ((run.time*4+index)|0)&1, YELLOW)
-  } else {
-    propBox(ctx, camera, edge, elevation-1, z, 4, 5, 12, INK, marker, DEEP, width, height)
-    const railA = project(camera, side*(road.width/2-.8), elevation+2.8, z-8, width, height)
-    const railB = project(camera, side*(road.width/2-.8), elevation+2.8-(value%3), z+6, width, height)
-    drawLine(ctx, marker, size*.45, [railA,railB])
-    const lavafall = project(camera, edge+side*2, elevation+9, z+2, width, height)
+    ctx.fillRect(x-size*4, y-size*8, size*8, size*8)
+    disc(ctx, marker, x, y-size*4, size*2.8)
+    ctx.fillRect(x-size*2.8, y-size*4, size*5.6, size*4)
+    disc(ctx, DEEP, x, y-size*3.5, size*1.7)
+    ctx.fillStyle = DEEP
+    ctx.fillRect(x-size*1.7, y-size*3.5, size*3.4, size*3.5)
     ctx.fillStyle = ORANGE
-    ctx.fillRect(lavafall.x-size, lavafall.y, size*2, size*9)
-    for (let spark = 0; spark < 2; spark++) {
-      drawSpark(ctx, point.x-side*size*(spark+1), point.y-size*(spark+1), size*.8, marker)
+    ctx.fillRect(x-size*.8, y-size*2.4, size*1.6, size*2.4)
+    ctx.fillStyle = marker
+    ctx.fillRect(x+side*size*2.2, y-size*13, size*2.4, size*6)
+    ctx.fillStyle = STEEL
+    ctx.fillRect(x+side*size*1.8, y-size*13.5, size*3.2, size)
+    drawLine(ctx, STEEL, size*.5, [{x:x-side*size*4,y},{x:x-side*size*4,y:y-size*9}])
+    drawLine(ctx, YELLOW, size*.4, [{x:x-size*3,y:y-size*.5},{x:x+size*3,y:y-size*.5}])
+    drawGear(ctx, x-side*size*3.1, y-size*6.8, size*1.5, run.time*1.4+value, YELLOW)
+  } else if (road.theme === 1) {
+    drawLine(ctx, INK, size*2.2, [{x:x-side*size*3,y},{x:x-side*size*3,y:y-size*11}])
+    drawLine(ctx, STEEL, size*1.1, [{x:x-side*size*3,y},{x:x-side*size*3,y:y-size*10},{x,y:y-size*10}])
+    ctx.fillStyle = marker
+    ctx.fillRect(x-side*size*4.2, y-size*8.2, size*2.4, size*2.4)
+    ring(ctx, marker, x-side*size*3, y-size*7, size*1.4, size*.7)
+    drawLine(ctx, INK, size*.5, [{x,y:y-size*13},{x,y:y-size*3}])
+    for (let link=0; link<4; link++) ring(ctx, WHITE, x, y-size*(11-link*2), size*.65, size*.35)
+    drawLine(ctx, marker, size*.7, [{x:x-side*size*5,y:y-size*3},{x:x+side*size*2,y:y-size*3}])
+    drawLine(ctx, ROAD_ALT, size*.4, [{x:x-side*size*5,y:y-size*6},{x:x+side*size*2,y:y-size*6}])
+    drawLamp(ctx, x+side*size*2, y-size*5, size, ((run.time*3+index)|0)&1, YELLOW)
+  } else if (road.theme === 2) {
+    groundQuad(ctx, marker, camera, stage, side*(road.width/2+1), side*(road.width/2+7), z-7, z+7, width, height, -1)
+    for (const offset of [-4,4]) {
+      drawLine(ctx, INK, size*1.1, [{x:x+offset*size,y},{x:x+offset*size,y:y-size*6}])
+      disc(ctx, STEEL, x+offset*size, y-size*6, size*.7)
     }
+    drawLine(ctx, WHITE, size*.65, [{x:x-size*4,y:y-size*5},{x:x+size*4,y:y-size*5}])
+    drawLine(ctx, COBALT, size*.55, [{x:x-size*4,y:y-size*3},{x:x+size*4,y:y-size*3}])
+    ctx.fillStyle = ORANGE
+    ctx.fillRect(x+side*size*4, y-size*9, size*2.6, size*9)
+    ctx.fillStyle = YELLOW
+    ctx.fillRect(x+side*size*4.8, y-size*9, size*.8, size*9)
+    ring(ctx, marker, x-side*size*2.3, y-size*1.2, size*1.2, size*.5)
+  } else if (road.theme === 3) {
+    ctx.fillStyle = INK
+    ctx.fillRect(x-size*5, y-size*13, size*10, size*2)
+    ctx.fillRect(x-size*5, y-size*13, size*1.5, size*13)
+    ctx.fillRect(x+size*3.5, y-size*13, size*1.5, size*13)
+    ctx.fillStyle = marker
+    ctx.fillRect(x-size*4.4, y-size*12.4, size*8.8, size*.9)
+    drawLine(ctx, STEEL, size*1.4, [{x,y:y-size*11},{x,y:y-size*4}])
+    ctx.fillStyle = YELLOW
+    ctx.fillRect(x-size*2.8, y-size*4.5, size*5.6, size*1.5)
+    drawGear(ctx, x-side*size*3, y-size*8, size*2, -run.time*1.7+value, STEEL)
+    drawLine(ctx, marker, size*.5, [{x:x-size*4,y:y-size*2},{x:x+size*4,y:y-size*2}])
+    drawLamp(ctx, x-side*size*4, y-size*14, size, ((run.time*4+index)|0)&1, YELLOW)
+  } else {
+    polygon(ctx, INK, [[x-size*5,y],[x-size*4,y-size*8],[x-size*2,y-size*11],
+      [x,y-size*8],[x+size*2,y-size*13],[x+size*4,y-size*7],[x+size*5,y]])
+    polygon(ctx, marker, [[x-size*3.8,y],[x-size*3,y-size*7],[x-size*1.7,y-size*8],
+      [x,y-size*5],[x+size*1.8,y-size*9],[x+size*3.5,y-size*6],[x+size*4,y]])
+    drawLine(ctx, STEEL, size*.8, [{x:x-side*size*5,y:y-size*2},{x:x-side*size*5,y:y-size*8}])
+    drawLine(ctx, STEEL, size*.65, [{x:x-side*size*5,y:y-size*8},{x:x+side*size*1,y:y-size*5}])
+    drawLine(ctx, marker, size*.55, [{x:x-side*size*4,y:y-size*3},{x:x+side*size*3,y:y-size*1}])
+    ctx.fillStyle = ORANGE
+    ctx.fillRect(x+side*size*3.2, y-size*7, size*1.8, size*7)
+    ring(ctx, YELLOW, x-side*size*2, y-size*3, size*1.1, size*.45)
+    disc(ctx, STEEL, x+side*size*.8, y-size*6, size*.65)
+    drawSpark(ctx, x-side*size*3, y-size*5, size*.8, marker)
   }
 }
 
@@ -258,14 +282,26 @@ function drawHurdle(ctx, obstacle, run, camera, stage, width, height) {
   const bounds = obstacleBounds(obstacle, run.time)
   drawTelegraph(ctx, bounds, camera, stage, width, height)
   drawFootprint(ctx, bounds, camera, stage, width, height)
-  drawSolid(ctx, bounds, camera, stage, width, height, [THEME_MARKERS[0], YELLOW, INK])
-  const base = project(camera, bounds.x, (roadAt(stage,bounds.z)?.elevation??0)+bounds.height*.55,
-    bounds.z-bounds.depth/2-.02, width, height)
+  const elevation = roadAt(stage,bounds.z)?.elevation??0
+  const base = project(camera, bounds.x, elevation, bounds.z-bounds.depth/2-.02, width, height)
+  const left = project(camera, bounds.x-bounds.width/2, elevation, bounds.z, width, height).x
+  const right = project(camera, bounds.x+bounds.width/2, elevation, bounds.z, width, height).x
   const unit = Math.max(1, base.scale*.42)
+  const top = base.y-bounds.height*base.scale
+  const panelTop = top+unit*1.5
   ctx.fillStyle = INK
-  ctx.fillRect(base.x-bounds.width*base.scale*.38, base.y-unit, bounds.width*base.scale*.76, unit*2)
+  ctx.fillRect(left-unit, top-unit, right-left+unit*2, unit*2)
+  ctx.fillRect(left, panelTop, right-left, unit*4)
+  ctx.fillRect(left+unit, panelTop+unit*4, unit*1.4, base.y-panelTop-unit*3)
+  ctx.fillRect(right-unit*2.4, panelTop+unit*4, unit*1.4, base.y-panelTop-unit*3)
+  ctx.fillRect(left-unit*1.5, base.y-unit, unit*4, unit)
+  ctx.fillRect(right-unit*2.5, base.y-unit, unit*4, unit)
+  for (let stripe=0; stripe<5; stripe++) {
+    ctx.fillStyle = stripe&1 ? INK : YELLOW
+    ctx.fillRect(left+(right-left)*stripe/5, panelTop+unit*.5, (right-left)/5+1, unit*3)
+  }
   ctx.fillStyle = YELLOW
-  ctx.fillRect(base.x-unit, base.y-unit, unit*2, unit*2)
+  ctx.fillRect(left, top-unit*.3, right-left, unit*.8)
 }
 
 function drawFlame(ctx, obstacle, run, camera, stage, width, height) {
@@ -278,8 +314,14 @@ function drawFlame(ctx, obstacle, run, camera, stage, width, height) {
   const right = project(camera, bounds.x+bounds.width/2, elevation, bounds.z, width, height).x
   const cell = Math.max(1, Math.round(base.scale*.55))
   const pilotY = Math.round(base.y-cell)
+  groundQuad(ctx, STEEL, camera, stage, bounds.x-bounds.width*.55, bounds.x+bounds.width*.55,
+    bounds.z-bounds.depth*.55, bounds.z+bounds.depth*.55, width, height, .04)
   ctx.fillStyle = INK
-  ctx.fillRect(left, pilotY, right-left, cell*2)
+  ctx.fillRect(left-cell, pilotY, right-left+cell*2, cell*2)
+  for (let slat=0; slat<5; slat++) {
+    ctx.fillStyle = slat&1 ? STEEL : DEEP
+    ctx.fillRect(left+(right-left)*slat/5, pilotY+cell*.3, (right-left)/7, cell*1.4)
+  }
   ctx.fillStyle = bounds.active ? ORANGE : ROAD_ALT
   ctx.fillRect(left+cell, pilotY-cell, Math.max(cell,right-left-cell*2), cell*2)
   ctx.fillStyle = YELLOW
@@ -309,10 +351,18 @@ function drawGap(ctx, obstacle, run, camera, stage, width, height) {
   const drift = (Math.sin(run.time*5+bounds.z)*.12+.5)*bounds.depth
   for (let i = 0; i < 2; i++) {
     const band = z0 + (drift+i*bounds.depth*.45)%bounds.depth
-    groundQuad(ctx, YELLOW, camera, stage, bounds.x-bounds.width*.34, bounds.x+bounds.width*.34,
+  groundQuad(ctx, YELLOW, camera, stage, bounds.x-bounds.width*.34, bounds.x+bounds.width*.34,
       band, Math.min(z1,band+bounds.depth*.09), width, height, .2)
   }
+  groundQuad(ctx, STEEL, camera, stage, x0, x1, z0, z0+bounds.depth*.08, width, height, .24)
   groundQuad(ctx, WHITE, camera, stage, x0, x1, z1-bounds.depth*.08, z1, width, height, .24)
+  const crack = lip => [
+    project(camera,bounds.x-bounds.width*.22, (roadAt(stage,lip)?.elevation??0)+.3, lip, width, height),
+    project(camera,bounds.x-bounds.width*.05, (roadAt(stage,lip)?.elevation??0)+.05, lip+(lip===z0 ? .8 : -.8), width, height),
+    project(camera,bounds.x+bounds.width*.16, (roadAt(stage,lip)?.elevation??0)+.25, lip, width, height)
+  ]
+  drawLine(ctx, DEEP, 2, crack(z0))
+  drawLine(ctx, INK, 2, crack(z1))
 }
 
 function drawPiston(ctx, obstacle, run, camera, stage, width, height) {
@@ -325,9 +375,18 @@ function drawPiston(ctx, obstacle, run, camera, stage, width, height) {
   const ram = project(camera, bounds.x, elevation+bounds.height, bounds.z, width, height)
   const unit = Math.max(1, top.scale)
   ctx.fillStyle = INK
-  ctx.fillRect(top.x-unit*3, top.y-unit*2, unit*6, unit*3)
+  ctx.fillRect(top.x-unit*4, top.y-unit*2.5, unit*8, unit*4)
+  ctx.fillStyle = YELLOW
+  ctx.fillRect(top.x-unit*3.2, top.y-unit*1.7, unit*6.4, unit*2.2)
+  ctx.fillStyle = INK
+  for (let stripe=-2; stripe<=2; stripe+=2) ctx.fillRect(top.x+stripe*unit, top.y-unit*1.7, unit, unit*2.2)
   ctx.fillStyle = STEEL
-  ctx.fillRect(ram.x-unit*.65, top.y+unit, unit*1.3, Math.max(unit,ram.y-top.y-unit))
+  ctx.fillRect(ram.x-unit*1.2, top.y+unit, unit*2.4, Math.max(unit,ram.y-top.y-unit))
+  ring(ctx, INK, ram.x, top.y+unit, unit*1.3, unit*.55)
+  ring(ctx, WHITE, ram.x, ram.y-unit*.5, unit*1.5, unit*.55)
+  for (const dx of [-2.8,2.8]) for (const dy of [-1.3,.2]) {
+    disc(ctx, INK, top.x+dx*unit, top.y+dy*unit, unit*.32)
+  }
   const cycle = obstacle[6] ? ((run.time+obstacle[7])/obstacle[6]%1+1)%1 : 0
   drawLamp(ctx, top.x-unit*2, top.y-unit*2, unit*.7, cycle>.5)
   drawLamp(ctx, top.x+unit*2, top.y-unit*2, unit*.7, cycle>.5)
@@ -353,6 +412,11 @@ function drawBridge(ctx, obstacle, index, run, camera, stage, width, height) {
   ctx.translate(-center.x, -center.y)
   drawSolid(ctx, { ...bounds, height:1.1 }, camera, stage, width, height,
     [progress>.55 ? INK : THEME_MARKERS[4], STEEL, COBALT])
+  for (const x of [-.34,.34]) for (const z of [-.28,.28]) {
+    const bolt = project(camera, bounds.x+bounds.width*x, elevation+1.2,
+      bounds.z+bounds.depth*z, width, height)
+    disc(ctx, INK, bolt.x, bolt.y, Math.max(1,bolt.scale*.32))
+  }
   const crack = project(camera, bounds.x+bounds.width*.18, elevation+1.12,
     bounds.z-bounds.depth*.15, width, height)
   drawSpark(ctx, crack.x, crack.y, Math.max(1,crack.scale), progress ? ORANGE : ROAD)
@@ -371,10 +435,20 @@ function drawFinish(ctx, obstacle, run, camera, stage, width, height) {
   }
   const z = bounds.z-bounds.depth/2-.02
   const inner = bounds.width/2-pillarWidth
-  worldQuad(ctx, WHITE, camera, [
-    [bounds.x-inner,elevation+2,z],[bounds.x+inner,elevation+2,z],
-    [bounds.x+inner,elevation+bounds.height-2,z],[bounds.x-inner,elevation+bounds.height-2,z]
-  ], width, height, .75+.2*Math.sin(run.time*8))
+  const center = project(camera, bounds.x, elevation+bounds.height*.48, z, width, height)
+  const left = project(camera, bounds.x-inner, elevation, z, width, height)
+  const radius = Math.max(2, Math.abs(center.x-left.x))
+  ctx.globalAlpha = .75+.2*Math.sin(run.time*8)
+  for (const [color,scale] of [[WHITE,1],[YELLOW,.78],[ORANGE,.56]]) {
+    ctx.strokeStyle = color
+    ctx.lineWidth = Math.max(1, radius*.16)
+    ctx.beginPath()
+    ctx.arc(center.x, center.y, radius*scale, Math.PI, Math.PI*2)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+  polygon(ctx, WHITE, [[center.x-radius*.48,center.y],[center.x+radius*.48,center.y],
+    [center.x+radius*.36,center.y+radius*.9],[center.x-radius*.36,center.y+radius*.9]], .5)
   worldQuad(ctx, YELLOW, camera, [
     [bounds.x-bounds.width/2,elevation+bounds.height-3,z],
     [bounds.x+bounds.width/2,elevation+bounds.height-3,z],

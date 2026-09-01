@@ -55,6 +55,14 @@ const renderAt = (z, overrides = {}, stage = RED_STAGE, width = 320, height = 18
 
 const drawCount = calls => calls.filter(call => call[0] === 'fill' || call[0] === 'fillRect').length
 const polygonCount = calls => calls.filter(call => call[0] === 'fill').length
+const operationCount = (calls, operation) => calls.filter(call => call[0] === operation).length
+const obstacleDelta = (type, operation, overrides = {}) => {
+  const obstacle = RED_STAGE.obstacles.find(item => item[0] === type)
+  const z = obstacle[1] - 20
+  const withObstacle = renderAt(z, overrides, { ...RED_STAGE, obstacles:[obstacle] })
+  const withoutObstacle = renderAt(z, overrides, { ...RED_STAGE, obstacles:[] })
+  return operationCount(withObstacle, operation) - operationCount(withoutObstacle, operation)
+}
 
 test('cleared overlapping solids draw before the airborne runner', () => {
   const fixtures = [
@@ -160,6 +168,32 @@ test('all six obstacle families add substantial visible geometry', () => {
   }
 })
 
+test('hurdle projects a top rail, striped face, and two planted feet', () => {
+  assert.ok(obstacleDelta(HURDLE, 'fillRect') >= 7)
+})
+
+test('flame projects a slatted floor vent beneath its clean flame column', () => {
+  assert.ok(obstacleDelta(FIRE, 'fillRect', { time:1.2 }) >= 7)
+  assert.ok(obstacleDelta(FIRE, 'fill', { time:1.2 }) >= 8)
+})
+
+test('gap projects cracked near and far road lips over animated lava', () => {
+  assert.ok(obstacleDelta(GAP, 'stroke') >= 2)
+})
+
+test('piston projects a mechanical cylinder and bolted warning face', () => {
+  assert.ok(obstacleDelta(PISTON, 'arc') >= 6)
+})
+
+test('bridge plate projects four bolts plus its crack and edge thickness', () => {
+  assert.ok(obstacleDelta(BRIDGE, 'arc') >= 4)
+  assert.ok(obstacleDelta(BRIDGE, 'stroke') >= 1)
+})
+
+test('finish projects a bright layered arch portal', () => {
+  assert.ok(obstacleDelta(FINISH, 'arc') >= 3)
+})
+
 test('all five section centers render dense deterministic identities', () => {
   const centers = [80, 260, 480, 700, 900]
   const expectedMarkers = ['#b83a2d', '#65162a', '#ff8b20', '#2263a8', '#f7e7c6']
@@ -173,6 +207,14 @@ test('all five section centers render dense deterministic identities', () => {
     assert.ok(first.some(call =>
       (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === expectedMarkers[i]
     ), `section ${i} identity marker is missing`)
+  }
+})
+
+test('section dressing combines curved machinery with structural linework', () => {
+  for (const z of [80, 260, 480, 700, 900]) {
+    const calls = renderAt(z, {}, { ...RED_STAGE, obstacles:[] })
+    assert.ok(operationCount(calls, 'arc') >= 6, `section at ${z} lacks curved machinery`)
+    assert.ok(operationCount(calls, 'stroke') >= 10, `section at ${z} lacks structural linework`)
   }
 })
 
