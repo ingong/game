@@ -17,8 +17,14 @@ export function createInput(target) {
     held.delete(event.code)
   }
 
+  const blur = () => {
+    held.clear()
+    jumpPressed = false
+  }
+
   target.addEventListener('keydown', down)
   target.addEventListener('keyup', up)
+  target.addEventListener('blur', blur)
 
   return {
     read() {
@@ -36,6 +42,7 @@ export function createInput(target) {
     destroy() {
       target.removeEventListener('keydown', down)
       target.removeEventListener('keyup', up)
+      target.removeEventListener('blur', blur)
     }
   }
 }
