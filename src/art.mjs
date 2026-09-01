@@ -2,6 +2,14 @@ import { clamp, projectPoint } from './math.mjs'
 
 export const RUNNER_WIDTH = 48
 export const RUNNER_HEIGHT = 72
+export const RUNNER_SHEET_SRC = './assets/unicorn-runner-sprite-concept.png'
+export const RUNNER_SHEET_FRAMES = [
+  [21, 50, 323, 727],
+  [399, 64, 360, 713],
+  [841, 63, 322, 714],
+  [1217, 81, 332, 696],
+  [1581, 0, 391, 592]
+]
 
 export const RUNNER_PALETTE = [
   '#31051b', '#790b24', '#d51d24', '#ff641e', '#ffd34d',
@@ -162,6 +170,17 @@ export const runnerFrameIndex = run => run.grounded ? Math.floor(run.anim / 2) &
 
 export const runnerScale = height => clamp(Math.floor(height / 300), 2, 5)
 
+export const runnerDisplayHeight = height => Math.round(clamp(height * .25, 180, 190))
+
+export function createRunnerSheet(document) {
+  const image = document.createElement('img')
+  image.decoding = 'async'
+  image.src = RUNNER_SHEET_SRC
+  return image
+}
+
+const runnerSheet = typeof document === 'undefined' ? null : createRunnerSheet(document)
+
 export function drawPixelRunner(ctx, run, width, height) {
   const scale = runnerScale(height)
   const point = projectPoint(run.x, run.y, 40, width, height)
@@ -174,4 +193,26 @@ export function drawPixelRunner(ctx, run, width, height) {
     ctx.fillStyle = RUNNER_PALETTE[color]
     ctx.fillRect(left + x * scale, top + y * scale, w * scale, h * scale)
   }
+}
+
+export function drawRunner(ctx, run, width, height, image = runnerSheet) {
+  if (!image?.complete || !image.naturalWidth) {
+    drawPixelRunner(ctx, run, width, height)
+    return
+  }
+
+  const [sourceX, sourceY, sourceWidth, sourceHeight] = RUNNER_SHEET_FRAMES[runnerFrameIndex(run)]
+  const displayHeight = runnerDisplayHeight(height)
+  const displayWidth = Math.round(displayHeight * sourceWidth / sourceHeight)
+  const point = projectPoint(run.x, run.y, 40, width, height)
+  const footY = Math.round(clamp(point.y, height * .58, height * .95))
+  const left = Math.round(point.x - displayWidth / 2)
+  const top = footY - displayHeight
+
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(
+    image,
+    sourceX, sourceY, sourceWidth, sourceHeight,
+    left, top, displayWidth, displayHeight
+  )
 }

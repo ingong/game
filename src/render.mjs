@@ -1,5 +1,5 @@
 import { clamp, projectPoint, roadEdges } from './math.mjs'
-import { drawPixelRunner } from './art.mjs'
+import { drawRunner } from './art.mjs'
 
 const INK = '#31051b'
 const ROAD = '#790b24'
@@ -217,7 +217,7 @@ export function render(ctx, run, stage, width, height) {
     .sort((a, b) => b.distance - a.distance)
 
   for (const item of visible) if (item.distance >= FOREGROUND) drawObstacle(ctx, item, run, width, height)
-  drawPixelRunner(ctx, run, width, height)
+  drawRunner(ctx, run, width, height)
   for (const item of visible) if (item.distance < FOREGROUND) drawObstacle(ctx, item, run, width, height)
   drawHud(ctx, run, width, height)
 }

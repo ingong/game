@@ -5,8 +5,13 @@ import {
   RUNNER_WIDTH,
   RUNNER_HEIGHT,
   RUNNER_FRAMES,
+  RUNNER_SHEET_SRC,
+  RUNNER_SHEET_FRAMES,
   runnerFrameIndex,
+  runnerDisplayHeight,
   runnerScale,
+  createRunnerSheet,
+  drawRunner,
   drawPixelRunner
 } from '../src/art.mjs'
 
@@ -67,6 +72,85 @@ test('grounded animation cycles four poses and airborne animation uses the tuck'
   assert.deepEqual([...grounded].sort(), [0, 1, 2, 3])
   for (const anim of [0, 1, 99]) {
     assert.equal(runnerFrameIndex({ grounded:false, anim }), 4)
+  }
+})
+
+test('approved sheet exposes five tight source crops in animation order', () => {
+  assert.equal(RUNNER_SHEET_SRC, './assets/unicorn-runner-sprite-concept.png')
+  assert.deepEqual(RUNNER_SHEET_FRAMES, [
+    [21, 50, 323, 727],
+    [399, 64, 360, 713],
+    [841, 63, 322, 714],
+    [1217, 81, 332, 696],
+    [1581, 0, 391, 592]
+  ])
+  for (const [x, y, width, height] of RUNNER_SHEET_FRAMES) {
+    assert.ok(x >= 0 && y >= 0)
+    assert.ok(width > 0 && height > 0)
+    assert.ok(x + width <= 1983)
+    assert.ok(y + height <= 793)
+  }
+})
+
+test('runner sheet loader requests only the local approved asset', () => {
+  const image = { src:'', decoding:'' }
+  const document = {
+    createElement(tag) {
+      assert.equal(tag, 'img')
+      return image
+    }
+  }
+
+  assert.equal(createRunnerSheet(document), image)
+
+  assert.equal(image.decoding, 'async')
+  assert.equal(image.src, RUNNER_SHEET_SRC)
+})
+
+test('ready sheet renders the selected crop near 180 pixels tall', () => {
+  const drawCalls = []
+  const fillCalls = []
+  const ctx = {
+    imageSmoothingEnabled:true,
+    drawImage(...args) { drawCalls.push(args) },
+    fillRect(...args) { fillCalls.push(args) }
+  }
+  const image = { complete:true, naturalWidth:1983 }
+
+  drawRunner(ctx, { x:0, y:0, grounded:false, anim:0 }, 1280, 720, image)
+
+  assert.equal(drawCalls.length, 1)
+  assert.equal(fillCalls.length, 0)
+  assert.equal(drawCalls[0][0], image)
+  assert.deepEqual(drawCalls[0].slice(1, 5), RUNNER_SHEET_FRAMES[4])
+  assert.equal(drawCalls[0][8], 180)
+})
+
+test('loading or failed sheet uses the code-native fallback', () => {
+  const drawCalls = []
+  const fillCalls = []
+  const ctx = {
+    imageSmoothingEnabled:true,
+    fillStyle:'',
+    drawImage(...args) { drawCalls.push(args) },
+    fillRect(...args) { fillCalls.push(args) }
+  }
+
+  drawRunner(ctx, { x:0, y:0, grounded:true, anim:0 }, 1280, 720, {
+    complete:false,
+    naturalWidth:0
+  })
+
+  assert.equal(drawCalls.length, 0)
+  assert.equal(fillCalls.length, RUNNER_FRAMES[0].length)
+})
+
+test('sheet display height stays within the approved gameplay range', () => {
+  assert.equal(runnerDisplayHeight(720), 180)
+  assert.equal(runnerDisplayHeight(844), 190)
+  for (const height of [480, 720, 844, 1080]) {
+    assert.ok(runnerDisplayHeight(height) >= 180)
+    assert.ok(runnerDisplayHeight(height) <= 190)
   }
 })
 

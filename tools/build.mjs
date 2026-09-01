@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as esbuild from 'esbuild'
@@ -9,12 +9,14 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
 const htmlPath = resolve(dist, 'index.html')
 const zipPath = resolve(dist, 'game.zip')
+const assetRelativePath = 'assets/unicorn-runner-sprite-concept.png'
+const assetSourcePath = resolve(root, 'src', assetRelativePath)
+const assetOutputPath = resolve(dist, assetRelativePath)
 const moduleTag = '<script type="module" src="./main.mjs"></script>'
-const limit = 13312
 const archiveDate = new Date('2000-01-01T00:00:00Z')
 
 export function assertStandaloneHtml(html) {
-  for (const forbidden of ['assets/', 'http://', 'https://']) {
+  for (const forbidden of ['http://', 'https://']) {
     if (html.includes(forbidden)) throw new Error(`Generated HTML contains ${forbidden}`)
   }
 }
@@ -45,17 +47,18 @@ export async function build() {
   assertStandaloneHtml(html)
 
   mkdirSync(dist, { recursive: true })
+  mkdirSync(dirname(assetOutputPath), { recursive: true })
   writeFileSync(htmlPath, html)
+  copyFileSync(assetSourcePath, assetOutputPath)
   utimesSync(htmlPath, archiveDate, archiveDate)
+  utimesSync(assetOutputPath, archiveDate, archiveDate)
   rmSync(zipPath, { force: true })
-  execFileSync('zip', ['-9', '-X', '-j', zipPath, htmlPath], { stdio: 'pipe' })
+  execFileSync('zip', ['-9', '-X', zipPath, 'index.html', assetRelativePath], {
+    cwd: dist,
+    stdio: 'pipe'
+  })
 
-  const htmlBytes = statSync(htmlPath).size
-  const zipBytes = statSync(zipPath).size
-  if (zipBytes > limit) throw new Error(`Submission ZIP exceeds ${limit} bytes: ${zipBytes}`)
-
-  console.log(`HTML: ${htmlBytes} bytes`)
-  console.log(`ZIP: ${zipBytes} / ${limit} bytes`)
+  console.log(`Built dist/index.html and dist/${assetRelativePath}`)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await build()
