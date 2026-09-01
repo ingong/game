@@ -166,14 +166,3 @@ export function contactAt(stage, run) {
   if (run.y <= 0 && bridgeIndex >= 0) return { kind:'bridge', index:bridgeIndex }
   return null
 }
-
-export function bridgeIndexAt(stage, x, z) {
-  return obstacleAt(stage, x, z, BRIDGE)
-}
-
-export function hazardAt(stage, run) {
-  const contact = contactAt(stage, run)
-  if (contact?.kind === 'lava') return 'LAVA'
-  if (contact?.kind === 'stumble' && stage.obstacles[contact.index][0] === FIRE) return 'FIRE'
-  return null
-}

@@ -1,7 +1,10 @@
 import { clamp } from './math.mjs'
-import { bridgeIndexAt, hazardAt } from './stage.mjs'
+import { contactAt, obstacleBounds, roadAt, surfaceAt } from './stage.mjs'
 
 const makeCollapse = () => ({ index:-1, timer:0 })
+
+const contains = (bounds, run) =>
+  Math.abs(run.x - bounds.x) <= bounds.width / 2 && Math.abs(run.z - bounds.z) <= bounds.depth / 2
 
 export const MOTION={
   maxSpeed:34, acceleration:24, drag:10, brake:36,
@@ -40,8 +43,10 @@ export function stepRun(run, input, dt, stage) {
   next.vx=clamp(next.vx+steer*MOTION.steerAcceleration*grip*dt,
     -MOTION.maxLateralSpeed,MOTION.maxLateralSpeed)
   if(!steer)next.vx=Math.sign(next.vx)*Math.max(0,Math.abs(next.vx)-MOTION.steerDrag*dt)
-  next.x=clamp(next.x+next.vx*dt,-31,31)
   next.z+=next.speed*dt
+  const road=roadAt(stage,next.z)
+  const halfWidth=road ? road.width/2 : 31
+  next.x=clamp(next.x+next.vx*dt,-halfWidth,halfWidth)
 
   if (input.jumpPressed && run.grounded && run.jumps === 0) {
     next.vy=MOTION.jumpImpulse
@@ -54,7 +59,8 @@ export function stepRun(run, input, dt, stage) {
   next.vy-=MOTION.gravity*dt
   next.y=run.y+next.vy*dt
   next.landing=Math.max(0,next.landing-5*dt)
-  if(next.y<=0){
+  const surface=surfaceAt(stage,next.x,next.z,run.collapse)
+  if(next.y<=0 && surface!==null){
     const landed=!run.grounded
     next.y=0
     next.vy=0
@@ -70,19 +76,37 @@ export function stepRun(run, input, dt, stage) {
 
   next.time = run.time + dt
   next.anim = run.anim + next.speed * dt * .055
-  if (next.time >= stage.timeLimit) {
-    next.mode = 'failure'
-    next.failReason = 'TIME'
-  }
-  const bridge = next.grounded ? bridgeIndexAt(stage, next.x, next.z) : -1
-  if (bridge < 0) next.collapse = makeCollapse()
-  else if (next.collapse.index === bridge) next.collapse.timer += dt
-  else next.collapse = { index:bridge, timer:dt }
+  next.stumble=Math.max(0,run.stumble-dt)
+  next.invulnerable=Math.max(0,run.invulnerable-dt)
 
-  const hazard = hazardAt(stage, next)
-  if (hazard) {
+  if(next.hitIndex>=0 && !contains(obstacleBounds(stage.obstacles[next.hitIndex],next.time),next)) {
+    next.hitIndex=-1
+  }
+
+  const contact=contactAt(stage,next)
+  if(contact?.kind==='bridge') {
+    next.collapse=run.collapse.index===contact.index
+      ? { index:contact.index,timer:run.collapse.timer+dt }
+      : { index:contact.index,timer:0 }
+  } else if(contact?.kind!=='lava') {
+    next.collapse=makeCollapse()
+  }
+
+  if(contact?.kind==='finish' || next.z>=stage.length) {
+    next.mode='success'
+  } else if(contact?.kind==='stumble' && next.invulnerable===0 && next.hitIndex!==contact.index) {
+    next.stumble=.45
+    next.invulnerable=.75
+    next.speed*=.45
+    next.vx*=-.35
+    next.stumbleId++
+    next.hitIndex=contact.index
+  } else if(contact?.kind==='lava') {
     next.mode = 'failure'
-    next.failReason = hazard
-  } else if (next.mode === 'running' && next.z >= stage.length) next.mode = 'success'
+    next.failReason = 'LAVA'
+  } else if(next.time>=stage.timeLimit) {
+    next.mode='failure'
+    next.failReason='TIME'
+  }
   return next
 }

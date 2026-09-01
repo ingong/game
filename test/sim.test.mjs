@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRun, restartRun, stepRun } from '../src/sim.mjs'
+import { RED_STAGE, BRIDGE, GAP, HURDLE } from '../src/stage.mjs'
 
 const stage = { timeLimit:45, length:5000, obstacles:[] }
 const idle = { left:false, right:false, up:false, down:false, jumpPressed:false }
@@ -92,18 +93,76 @@ test('crossing the finish enters success state', () => {
   assert.equal(run.mode, 'success')
 })
 
-test('a collapsing bridge becomes lava after its delay', () => {
-  const bridge = { timeLimit:45, length:100, obstacles:[[2,10,0,12,.1],[3,100,0,24,0]] }
-  let run = { ...createRun(bridge), mode:'running', z:10, speed:12 }
-  run = stepRun(run, idle, .1, bridge)
+test('solid obstacle contact stumbles once and preserves the run', () => {
+  const hurdle = RED_STAGE.obstacles.find(obstacle => obstacle[0] === HURDLE)
+  let run = { ...createRun(RED_STAGE), mode:'running', z:hurdle[1], x:hurdle[2], speed:30 }
+  run = stepRun(run, idle, 1 / 120, RED_STAGE)
+  assert.equal(run.mode, 'running')
+  assert.ok(run.stumble > 0)
+  assert.ok(run.invulnerable > 0)
+  assert.ok(run.speed < 20)
+  const id = run.stumbleId
+  run = stepRun(run, idle, 1 / 120, RED_STAGE)
+  assert.equal(run.stumbleId, id)
+})
+
+test('a stumble hit is retained until the runner leaves its obstacle footprint', () => {
+  const index = RED_STAGE.obstacles.findIndex(obstacle => obstacle[0] === HURDLE)
+  const hurdle = RED_STAGE.obstacles[index]
+  const hit = stepRun(
+    { ...createRun(RED_STAGE), mode:'running', z:hurdle[1], x:hurdle[2], speed:0 },
+    idle, 1 / 120, RED_STAGE
+  )
+  const clear = stepRun(
+    { ...hit, z:hurdle[1] + hurdle[4] / 2 + .1, speed:0 },
+    idle, 1 / 120, RED_STAGE
+  )
+  assert.equal(hit.hitIndex, index)
+  assert.equal(clear.hitIndex, -1)
+})
+
+test('jumping above a hurdle preserves speed and does not stumble', () => {
+  const hurdle = RED_STAGE.obstacles.find(obstacle => obstacle[0] === HURDLE)
+  let run = {
+    ...createRun(RED_STAGE), mode:'running', z:hurdle[1], x:hurdle[2],
+    y:8, speed:30, grounded:false, jumps:1
+  }
+  run = stepRun(run, idle, 1 / 120, RED_STAGE)
+  assert.equal(run.stumble, 0)
+  assert.ok(run.speed > 29)
+})
+
+test('lava is terminal but ordinary obstacle contact is not', () => {
+  const gap = RED_STAGE.obstacles.find(obstacle => obstacle[0] === GAP)
+  let run = { ...createRun(RED_STAGE), mode:'running', z:gap[1], x:0, y:0 }
+  run = stepRun(run, idle, 1 / 120, RED_STAGE)
   assert.equal(run.mode, 'failure')
   assert.equal(run.failReason, 'LAVA')
 })
 
-test('a hazard at the finish takes precedence over success', () => {
-  const finishFire = { timeLimit:45, length:1, obstacles:[[0,1,0,24,3],[3,1,0,24,0]] }
-  let run = { ...createRun(finishFire), mode:'running', speed:30 }
-  run = stepRun(run, idle, .1, finishFire)
-  assert.equal(run.mode, 'failure')
-  assert.equal(run.failReason, 'FIRE')
+test('bridge plate collapses only after its delay', () => {
+  const index = RED_STAGE.obstacles.findIndex(obstacle => obstacle[0] === BRIDGE)
+  const plate = RED_STAGE.obstacles[index]
+  let run = { ...createRun(RED_STAGE), mode:'running', z:plate[1], x:0, speed:0 }
+  run = stepRun(run, idle, 1 / 120, RED_STAGE)
+  assert.equal(run.collapse.index, index)
+  for (let i = 0; i < 80 && run.mode === 'running'; i++) run = stepRun(run, idle, 1 / 120, RED_STAGE)
+  assert.equal(run.failReason, 'LAVA')
+})
+
+test('reaching the finish on the time boundary succeeds', () => {
+  const short = { timeLimit:.1, length:1, obstacles:[[3, 1, 0, 24, 0]] }
+  let run = { ...createRun(short), mode:'running', speed:30 }
+  run = stepRun(run, idle, .1, short)
+  assert.equal(run.mode, 'success')
+})
+
+test('a stumble at the finish cannot turn into a timeout failure', () => {
+  const short = {
+    timeLimit:.1, length:1,
+    obstacles:[[0, 1, 0, 24, 3], [3, 1, 0, 24, 0]]
+  }
+  let run = { ...createRun(short), mode:'running', speed:30 }
+  run = stepRun(run, idle, .1, short)
+  assert.equal(run.mode, 'success')
 })

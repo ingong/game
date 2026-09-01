@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   RED_STAGE, FIRE, GAP, BRIDGE, FINISH, HURDLE, PISTON,
   validateStage, sectionAt, roadAt, obstacleBounds, surfaceAt,
-  contactAt, hazardAt, bridgeIndexAt
+  contactAt
 } from '../src/stage.mjs'
 
 test('red stage contains five contiguous sets and a finish at 1000', () => {
@@ -60,14 +60,6 @@ test('contact reports stumbles, lava, bridges, and the finish', () => {
     { kind:'bridge', index:bridgeIndex })
   assert.deepEqual(contactAt(RED_STAGE, { x:0, y:0, z:RED_STAGE.length, time:0 }),
     { kind:'finish', index:RED_STAGE.obstacles.length - 1 })
-})
-
-test('compatibility wrappers delegate dynamic fire and bridge queries', () => {
-  const fire = RED_STAGE.obstacles.find(o => o[0] === FIRE)
-  const bridgeIndex = RED_STAGE.obstacles.findIndex(o => o[0] === BRIDGE)
-  const bridge = RED_STAGE.obstacles[bridgeIndex]
-  assert.equal(hazardAt(RED_STAGE, { x:fire[2], y:0, z:fire[1], time:.9 }), 'FIRE')
-  assert.equal(bridgeIndexAt(RED_STAGE, bridge[2], bridge[1]), bridgeIndex)
 })
 
 test('stage validation reports malformed section and obstacle tuples', () => {
