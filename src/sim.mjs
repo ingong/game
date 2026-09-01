@@ -7,7 +7,7 @@ const contains = (bounds, run) =>
   Math.abs(run.x - bounds.x) <= bounds.width / 2 && Math.abs(run.z - bounds.z) <= bounds.depth / 2
 
 export const MOTION={
-  maxSpeed:34, acceleration:24, drag:10, brake:36,
+  maxSpeed:29.2, acceleration:18, drag:10, brake:36,
   steerAcceleration:70, steerDrag:8, maxLateralSpeed:18,
   gravity:48, jumpImpulse:18, doubleJumpImpulse:15
 }
