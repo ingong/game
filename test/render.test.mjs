@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createCamera } from '../src/camera.mjs'
 import { render } from '../src/render.mjs'
 import { createRun } from '../src/sim.mjs'
-import { RED_STAGE } from '../src/stage.mjs'
+import { BRIDGE, FINISH, FIRE, GAP, HURDLE, PISTON, RED_STAGE } from '../src/stage.mjs'
 
 function recordingContext() {
   const calls = []
@@ -13,14 +13,19 @@ function recordingContext() {
     font:'',
     textAlign:'',
     textBaseline:'',
+    strokeStyle:'',
+    lineWidth:1,
+    globalAlpha:1,
     imageSmoothingEnabled:true,
     beginPath() { calls.push(['beginPath']) },
     moveTo(x, y) { calls.push(['moveTo', x, y]) },
     lineTo(x, y) { calls.push(['lineTo', x, y]) },
     closePath() { calls.push(['closePath']) },
-    fill() { calls.push(['fill', this.fillStyle]) },
-    fillRect(x, y, width, height) { calls.push(['fillRect', this.fillStyle, x, y, width, height]) },
-    fillText(value, x, y) { calls.push(['fillText', value, x, y]) },
+    fill() { calls.push(['fill', this.fillStyle, this.globalAlpha]) },
+    stroke() { calls.push(['stroke', this.strokeStyle, this.lineWidth, this.globalAlpha]) },
+    arc(x, y, radius, start, end) { calls.push(['arc', x, y, radius, start, end]) },
+    fillRect(x, y, width, height) { calls.push(['fillRect', this.fillStyle, x, y, width, height, this.globalAlpha]) },
+    fillText(value, x, y) { calls.push(['fillText', value, x, y, this.font, this.textAlign]) },
     save() { calls.push(['save']) },
     restore() { calls.push(['restore']) },
     translate(x, y) { calls.push(['translate', x, y]) },
@@ -29,8 +34,25 @@ function recordingContext() {
   }
 }
 
-const runnerAnchor = calls => calls.findIndex(call =>
-  call[0] === 'translate' && Number.isInteger(call[1]) && Number.isInteger(call[2]))
+const runnerScaleIndex = calls => calls.findIndex(call =>
+  call[0] === 'scale' && call[1] === call[2] && call[1] >= .5 && call[1] <= 1.2)
+
+const runnerAnchor = calls => {
+  const scale = runnerScaleIndex(calls)
+  for (let i = scale - 1; i >= 0; i--) if (calls[i][0] === 'translate') return i
+  return -1
+}
+
+const renderAt = (z, overrides = {}, stage = RED_STAGE, width = 320, height = 180) => {
+  const run = { ...createRun(stage), mode:'running', time:4, speed:28, z, ...overrides }
+  const camera = { ...createCamera(run), z:z - 24 }
+  const ctx = recordingContext()
+  render(ctx, run, camera, stage, width, height)
+  return ctx.calls
+}
+
+const drawCount = calls => calls.filter(call => call[0] === 'fill' || call[0] === 'fillRect').length
+const polygonCount = calls => calls.filter(call => call[0] === 'fill').length
 
 test('render draws road, projected runner, and HUD without DOM or images', () => {
   const run = { ...createRun(RED_STAGE), mode:'running', x:4, y:3, z:200 }
@@ -83,6 +105,113 @@ test('obstacle art disappears after its world plane passes behind the camera', (
   render(behind, run, camera, flameStage, 320, 180)
 
   assert.deepEqual(behind.calls, empty.calls)
+})
+
+test('all six obstacle families add substantial visible geometry', () => {
+  const minimumDraws = new Map([
+    [FIRE, 7], [GAP, 4], [BRIDGE, 7], [FINISH, 8], [HURDLE, 7], [PISTON, 7]
+  ])
+
+  for (const [type, minimum] of minimumDraws) {
+    const obstacle = RED_STAGE.obstacles.find(item => item[0] === type)
+    const z = obstacle[1] - 20
+    const withObstacle = renderAt(z, {}, { ...RED_STAGE, obstacles:[obstacle] })
+    const withoutObstacle = renderAt(z, {}, { ...RED_STAGE, obstacles:[] })
+    const delta = drawCount(withObstacle) - drawCount(withoutObstacle)
+    assert.ok(delta >= minimum, `obstacle ${type} added ${delta} draw operations`)
+  }
+})
+
+test('all five section centers render dense deterministic identities', () => {
+  const centers = [80, 260, 480, 700, 900]
+  const expectedMarkers = ['#b83a2d', '#65162a', '#ff8b20', '#2263a8', '#f7e7c6']
+
+  for (let i = 0; i < centers.length; i++) {
+    const first = renderAt(centers[i], {}, { ...RED_STAGE, obstacles:[] })
+    const second = renderAt(centers[i], {}, { ...RED_STAGE, obstacles:[] })
+    assert.deepEqual(first, second, `section ${i} rendering is not deterministic`)
+    assert.ok(polygonCount(first) >= 12, `section ${i} has too few projected polygons`)
+    assert.ok(drawCount(first) >= 20, `section ${i} has too few filled shapes`)
+    assert.ok(first.some(call =>
+      (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === expectedMarkers[i]
+    ), `section ${i} identity marker is missing`)
+  }
+})
+
+test('runner ground shadow shrinks and fades with jump altitude', () => {
+  const stage = { ...RED_STAGE, obstacles:[] }
+  const grounded = renderAt(200, { y:0, grounded:true }, stage)
+  const jumping = renderAt(200, { y:10, grounded:false, jumps:1 }, stage)
+  const groundRoot = runnerScaleIndex(grounded)
+  const jumpRoot = runnerScaleIndex(jumping)
+  const groundShadow = grounded.slice(0, groundRoot).findLast(call => call[0] === 'scale')
+  const jumpShadow = jumping.slice(0, jumpRoot).findLast(call => call[0] === 'scale')
+  const groundFill = grounded.slice(0, groundRoot).findLast(call => call[0] === 'fill')
+  const jumpFill = jumping.slice(0, jumpRoot).findLast(call => call[0] === 'fill')
+
+  assert.ok(groundShadow && jumpShadow, 'runner shadow transform is missing')
+  assert.ok(groundShadow[1] >= 3 && groundShadow[1] <= 8,
+    `ground shadow footprint scale ${groundShadow[1]}`)
+  assert.ok(jumpShadow[1] < groundShadow[1], 'jump shadow did not shrink')
+  assert.ok(jumpFill[2] < groundFill[2], 'jump shadow did not fade')
+})
+
+test('bridge collapse timer rotates the projected plate', () => {
+  const bridge = RED_STAGE.obstacles.find(item => item[0] === BRIDGE)
+  const stage = { ...RED_STAGE, obstacles:[bridge] }
+  const z = bridge[1] - 20
+  const stable = renderAt(z, { collapse:{ index:-1, timer:0 } }, stage)
+  const falling = renderAt(z, { collapse:{ index:0, timer:bridge[6] * .75 } }, stage)
+  const stableRotations = stable.slice(0, runnerScaleIndex(stable)).filter(call => call[0] === 'rotate')
+  const fallingRotations = falling.slice(0, runnerScaleIndex(falling)).filter(call => call[0] === 'rotate')
+
+  assert.notDeepEqual(fallingRotations, stableRotations)
+  assert.ok(fallingRotations.some(call => Math.abs(call[1]) > .1))
+  assert.ok(falling.some(call => (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === '#9a8790'),
+    'bridge plate steel plane is missing')
+  const orangeFills = calls => calls.filter(call =>
+    (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === '#ff641e').length
+  assert.ok(orangeFills(falling) > orangeFills(stable), 'collapse did not expose lava below the plate')
+})
+
+test('HUD and state text fit the 320x180 and 195x422 logical canvases', () => {
+  const modes = [
+    { mode:'title' },
+    { mode:'countdown', countdown:3 },
+    { mode:'success' },
+    { mode:'failure', failReason:'TIME' }
+  ]
+
+  for (const [width, height] of [[320, 180], [195, 422]]) {
+    for (const state of modes) {
+      const calls = renderAt(80, state, { ...RED_STAGE, obstacles:[] }, width, height)
+      for (const call of calls.filter(item => item[0] === 'fillText')) {
+        const [, value, x, y, font, align] = call
+        const size = Number.parseInt(font.match(/\d+px/)[0], 10)
+        const textWidth = value.length * size * .6
+        const left = align === 'left' ? x : align === 'right' ? x - textWidth : x - textWidth / 2
+        const right = left + textWidth
+        assert.ok(left >= 0 && right <= width, `${value} clips horizontally at ${width}x${height}`)
+        assert.ok(y - size / 2 >= 0 && y + size / 2 <= height, `${value} clips vertically at ${width}x${height}`)
+      }
+    }
+  }
+})
+
+test('every section and obstacle renders without runtime randomness or browser globals', () => {
+  const random = Math.random
+  Math.random = () => { throw new Error('runtime random call') }
+  try {
+    assert.doesNotThrow(() => {
+      for (const z of [80, 260, 480, 700, 900]) renderAt(z)
+      for (const type of [FIRE, GAP, BRIDGE, FINISH, HURDLE, PISTON]) {
+        const obstacle = RED_STAGE.obstacles.find(item => item[0] === type)
+        renderAt(obstacle[1] - 20, {}, { ...RED_STAGE, obstacles:[obstacle] }, 195, 422)
+      }
+    })
+  } finally {
+    Math.random = random
+  }
 })
 
 test('a run beyond the finish keeps the final section elevation', () => {

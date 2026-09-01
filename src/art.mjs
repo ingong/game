@@ -117,6 +117,53 @@ export function runnerScale(width, height) {
   return Math.max(.8, Math.min(1.25, Math.min(width / 1280, height / 720)))
 }
 
+export function drawGear(ctx, x, y, radius, phase, color, core = '#31051b') {
+  const tooth = Math.max(1, radius * .28)
+  ctx.save()
+  ctx.translate(Math.round(x), Math.round(y))
+  ctx.rotate(phase)
+  ctx.fillStyle = color
+  for (let i = 0; i < 8; i++) {
+    ctx.rotate(Math.PI / 4)
+    ctx.fillRect(-tooth / 2, -radius - tooth, tooth, tooth * 1.8)
+  }
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = core
+  ctx.beginPath()
+  ctx.arc(0, 0, radius * .42, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+export function drawLamp(ctx, x, y, size, lit, color = '#ffd34d') {
+  const s = Math.max(1, size)
+  ctx.fillStyle = '#31051b'
+  ctx.fillRect(Math.round(x - s), Math.round(y - s * 1.4), Math.round(s * 2), Math.round(s * 2.2))
+  ctx.fillStyle = lit ? color : '#790b24'
+  ctx.fillRect(Math.round(x - s * .55), Math.round(y - s), Math.max(1, Math.round(s * 1.1)), Math.max(1, Math.round(s)))
+  if (lit) {
+    ctx.globalAlpha = .3
+    ctx.beginPath()
+    ctx.arc(Math.round(x), Math.round(y - s * .5), s * 1.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+}
+
+export function drawSpark(ctx, x, y, size, color = '#ffd34d') {
+  ctx.strokeStyle = color
+  ctx.lineWidth = Math.max(1, size * .18)
+  ctx.beginPath()
+  for (let i = 0; i < 4; i++) {
+    const angle = i * Math.PI / 2 + Math.PI / 4
+    ctx.moveTo(x + Math.cos(angle) * size * .3, y + Math.sin(angle) * size * .3)
+    ctx.lineTo(x + Math.cos(angle) * size, y + Math.sin(angle) * size)
+  }
+  ctx.stroke()
+}
+
 export function drawRunner(ctx, run, x, y, scale) {
   const poseIndex = runnerPose(run)
   const [lean,lua,lfa,rua,rfa,lt,ls,rt,rs,bob] = RUNNER_POSES[poseIndex]
@@ -125,7 +172,7 @@ export function drawRunner(ctx, run, x, y, scale) {
   ctx.save()
   ctx.translate(Math.round(x), Math.round(y))
   ctx.scale(scale, scale)
-  if (poseIndex === 9) ctx.scale(1.12, .82)
+  if (run.landing > 0) ctx.scale(1 + .12 * run.landing, 1 - .12 * run.landing)
   ctx.translate(0, Math.round(-23 + bob))
   ctx.rotate(lean * A)
 
