@@ -1,5 +1,6 @@
-import { clamp, projectPoint, roadEdges } from './math.mjs'
+import { clamp, projectPoint } from './math.mjs'
 import { drawRunner, runnerScale } from './art.mjs'
+import { FIRE, GAP, BRIDGE, FINISH, roadAt } from './stage.mjs'
 
 const INK = '#31051b'
 const ROAD = '#790b24'
@@ -9,9 +10,8 @@ const YELLOW = '#ffd34d'
 const COBALT = '#0877d1'
 const NAVY = '#071f70'
 const WHITE = '#fff'
-const NEAR = 34
+const NEAR = 1
 const FAR = 440
-const FOREGROUND = 70
 
 function polygon(ctx, color, points) {
   ctx.fillStyle = color
@@ -22,19 +22,26 @@ function polygon(ctx, color, points) {
   ctx.fill()
 }
 
-function projectedQuad(ctx, color, x0, x1, z0, z1, width, height) {
-  const farLeft = projectPoint(x0, 0, z1, width, height)
-  const farRight = projectPoint(x1, 0, z1, width, height)
-  const nearRight = projectPoint(x1, 0, z0, width, height)
-  const nearLeft = projectPoint(x0, 0, z0, width, height)
+function roadPoint(camera, stage, x, z, width, height) {
+  const road = roadAt(stage, z)
+  return road ? projectPoint(camera, x, road.elevation, z, width, height) : null
+}
+
+function projectedQuad(ctx, color, camera, stage, x0, x1, z0, z1, width, height) {
+  const farLeft = roadPoint(camera, stage, x0, z1, width, height)
+  const farRight = roadPoint(camera, stage, x1, z1, width, height)
+  const nearRight = roadPoint(camera, stage, x1, z0, width, height)
+  const nearLeft = roadPoint(camera, stage, x0, z0, width, height)
+  if (!farLeft || !farRight || !nearRight || !nearLeft) return
   polygon(ctx, color, [
     [farLeft.x, farLeft.y], [farRight.x, farRight.y],
     [nearRight.x, nearRight.y], [nearLeft.x, nearLeft.y]
   ])
 }
 
-function drawLava(ctx, run, width, height) {
-  const horizon = roadEdges(FAR, width, height).y
+function drawLava(ctx, run, camera, stage, width, height) {
+  const farZ = Math.min(stage.length, camera.z + FAR)
+  const horizon = roadPoint(camera, stage, 0, Math.max(0, farZ), width, height)?.y ?? height * camera.horizon
   ctx.fillStyle = ORANGE
   ctx.fillRect(0, horizon, width, height - horizon)
 
@@ -52,30 +59,38 @@ function drawLava(ctx, run, width, height) {
   }
 }
 
-function drawRoad(ctx, run, width, height) {
-  for (let far = FAR; far > NEAR; far -= 10) {
-    const near = Math.max(NEAR, far - 10)
-    const a = roadEdges(far, width, height)
-    const b = roadEdges(near, width, height)
-    polygon(ctx, ROAD, [[a.left, a.y], [a.right, a.y], [b.right, b.y], [b.left, b.y]])
+function drawRoad(ctx, camera, stage, width, height) {
+  const firstZ = Math.max(0, camera.z + NEAR)
+  for (let farZ = Math.min(stage.length, camera.z + FAR); farZ > firstZ; farZ -= 10) {
+    const nearZ = Math.max(firstZ, farZ - 10)
+    const farRoad = roadAt(stage, farZ)
+    const nearRoad = roadAt(stage, nearZ)
+    if (!farRoad || !nearRoad) continue
+    const farLeft = projectPoint(camera, -farRoad.width / 2, farRoad.elevation, farZ, width, height)
+    const farRight = projectPoint(camera, farRoad.width / 2, farRoad.elevation, farZ, width, height)
+    const nearLeft = projectPoint(camera, -nearRoad.width / 2, nearRoad.elevation, nearZ, width, height)
+    const nearRight = projectPoint(camera, nearRoad.width / 2, nearRoad.elevation, nearZ, width, height)
+    polygon(ctx, ROAD, [[farLeft.x, farLeft.y], [farRight.x, farRight.y], [nearRight.x, nearRight.y], [nearLeft.x, nearLeft.y]])
 
-    const edge = Math.max(1, (b.right - b.left) * .018)
-    polygon(ctx, INK, [[a.left, a.y], [a.left + edge, a.y], [b.left + edge, b.y], [b.left, b.y]])
-    polygon(ctx, INK, [[a.right - edge, a.y], [a.right, a.y], [b.right, b.y], [b.right - edge, b.y]])
+    const edge = Math.max(1, (nearRight.x - nearLeft.x) * .018)
+    polygon(ctx, INK, [[farLeft.x, farLeft.y], [farLeft.x + edge, farLeft.y], [nearLeft.x + edge, nearLeft.y], [nearLeft.x, nearLeft.y]])
+    polygon(ctx, INK, [[farRight.x - edge, farRight.y], [farRight.x, farRight.y], [nearRight.x, nearRight.y], [nearRight.x - edge, nearRight.y]])
 
-    if ((Math.floor((run.z + far) / 40) & 1) === 0) {
-      const center = width / 2
-      const mark = Math.max(1, (b.right - b.left) * .015)
-      polygon(ctx, YELLOW, [[center - mark, a.y], [center + mark, a.y], [center + mark * 1.5, b.y], [center - mark * 1.5, b.y]])
+    if ((Math.floor(farZ / 40) & 1) === 0) {
+      const farCenter = projectPoint(camera, 0, farRoad.elevation, farZ, width, height)
+      const nearCenter = projectPoint(camera, 0, nearRoad.elevation, nearZ, width, height)
+      const mark = Math.max(1, (nearRight.x - nearLeft.x) * .015)
+      polygon(ctx, YELLOW, [[farCenter.x - mark, farCenter.y], [farCenter.x + mark, farCenter.y], [nearCenter.x + mark * 1.5, nearCenter.y], [nearCenter.x - mark * 1.5, nearCenter.y]])
     }
   }
 }
 
-function drawFlame(ctx, obstacle, distance, width, height) {
-  const [, , x, span, flameHeight] = obstacle
-  const base = projectPoint(x, 0, distance, width, height)
-  const left = projectPoint(x - span / 2, 0, distance, width, height).x
-  const right = projectPoint(x + span / 2, 0, distance, width, height).x
+function drawFlame(ctx, obstacle, camera, stage, width, height) {
+  const [, z, x, span, , flameHeight] = obstacle
+  const elevation = roadAt(stage, z)?.elevation ?? 0
+  const base = projectPoint(camera, x, elevation, z, width, height)
+  const left = projectPoint(camera, x - span / 2, elevation, z, width, height).x
+  const right = projectPoint(camera, x + span / 2, elevation, z, width, height).x
   const barHeight = Math.max(6, Math.round(flameHeight * base.scale))
   const cell = Math.max(2, Math.round(base.scale * .7))
   const x0 = Math.round(left)
@@ -98,46 +113,49 @@ function drawFlame(ctx, obstacle, distance, width, height) {
   ctx.fillRect(Math.round((x0 + x1) / 2), top - cell, cell, cell * 3)
 }
 
-function drawGap(ctx, obstacle, distance, width, height) {
-  const [, , x, span, length] = obstacle
-  const near = Math.max(NEAR, distance)
-  const far = Math.max(near + 1, distance + length)
-  projectedQuad(ctx, ORANGE, x - span / 2, x + span / 2, near, far, width, height)
+function drawGap(ctx, obstacle, camera, stage, width, height) {
+  const [, z, x, span, length] = obstacle
+  const near = Math.max(camera.z + NEAR, z - length / 2)
+  const far = Math.max(near + 1, z + length / 2)
+  projectedQuad(ctx, ORANGE, camera, stage, x - span / 2, x + span / 2, near, far, width, height)
 
   const inset = span * .08
-  projectedQuad(ctx, INK, x - span / 2 + inset, x + span / 2 - inset, near, far, width, height)
+  projectedQuad(ctx, INK, camera, stage, x - span / 2 + inset, x + span / 2 - inset, near, far, width, height)
   const glowNear = near + (far - near) * .42
   const glowFar = near + (far - near) * .58
-  projectedQuad(ctx, YELLOW, x - span * .3, x + span * .3, glowNear, glowFar, width, height)
+  projectedQuad(ctx, YELLOW, camera, stage, x - span * .3, x + span * .3, glowNear, glowFar, width, height)
 }
 
-function drawBridge(ctx, obstacle, index, distance, run, width, height) {
-  const [, , x, span, delay] = obstacle
+function drawBridge(ctx, obstacle, index, run, camera, stage, width, height) {
+  const [, z, x, span, depth, , delay] = obstacle
   const active = run.collapse.index === index
   const progress = active ? clamp(run.collapse.timer / delay, 0, 1) : 0
   const tileSpan = span * (1 - progress * .45)
-  const halfDepth = span * .42 * (1 - progress * .35)
-  const near = Math.max(NEAR, distance - halfDepth)
-  const far = Math.max(near + 1, distance + halfDepth)
+  const halfDepth = depth / 2 * (1 - progress * .35)
+  const near = Math.max(camera.z + NEAR, z - halfDepth)
+  const far = Math.max(near + 1, z + halfDepth)
   const color = progress > .45 ? INK : progress > 0 ? ROAD : WHITE
   const edge = progress > .45 ? ROAD : COBALT
 
-  projectedQuad(ctx, color, x - tileSpan / 2, x + tileSpan / 2, near, far, width, height)
-  projectedQuad(ctx, edge, x - tileSpan / 2, x + tileSpan / 2, near, near + (far - near) * .12, width, height)
-  projectedQuad(ctx, edge, x - tileSpan * .035, x + tileSpan * .035, near, far, width, height)
+  projectedQuad(ctx, color, camera, stage, x - tileSpan / 2, x + tileSpan / 2, near, far, width, height)
+  projectedQuad(ctx, edge, camera, stage, x - tileSpan / 2, x + tileSpan / 2, near, near + (far - near) * .12, width, height)
+  projectedQuad(ctx, edge, camera, stage, x - tileSpan * .035, x + tileSpan * .035, near, far, width, height)
 
-  const crack = projectPoint(x + tileSpan * .2, 0, (near + far) / 2, width, height)
+  const crackZ = (near + far) / 2
+  const elevation = roadAt(stage, crackZ)?.elevation ?? 0
+  const crack = projectPoint(camera, x + tileSpan * .2, elevation, crackZ, width, height)
   const pixel = Math.max(1, Math.round(crack.scale * .45))
   ctx.fillStyle = progress ? INK : ROAD
   ctx.fillRect(Math.round(crack.x), Math.round(crack.y), pixel * 3, pixel)
   ctx.fillRect(Math.round(crack.x) + pixel * 2, Math.round(crack.y) - pixel, pixel, pixel * 3)
 }
 
-function drawFinish(ctx, obstacle, distance, width, height) {
-  const [, , x, span] = obstacle
-  const ground = projectPoint(x, 0, distance, width, height)
-  const left = projectPoint(x - span / 2, 0, distance, width, height).x
-  const right = projectPoint(x + span / 2, 0, distance, width, height).x
+function drawFinish(ctx, obstacle, camera, stage, width, height) {
+  const [, z, x, span] = obstacle
+  const elevation = roadAt(stage, z)?.elevation ?? 0
+  const ground = projectPoint(camera, x, elevation, z, width, height)
+  const left = projectPoint(camera, x - span / 2, elevation, z, width, height).x
+  const right = projectPoint(camera, x + span / 2, elevation, z, width, height).x
   const column = Math.max(3, ground.scale * 2)
   const archHeight = Math.max(18, ground.scale * 15)
   const top = ground.y - archHeight
@@ -157,12 +175,12 @@ function drawFinish(ctx, obstacle, distance, width, height) {
   }
 }
 
-function drawObstacle(ctx, item, run, width, height) {
-  const { obstacle, index, distance } = item
-  if (obstacle[0] === 0) drawFlame(ctx, obstacle, distance, width, height)
-  else if (obstacle[0] === 1) drawGap(ctx, obstacle, distance, width, height)
-  else if (obstacle[0] === 2) drawBridge(ctx, obstacle, index, distance, run, width, height)
-  else drawFinish(ctx, obstacle, distance, width, height)
+function drawObstacle(ctx, item, run, camera, stage, width, height) {
+  const { obstacle, index } = item
+  if (obstacle[0] === FIRE) drawFlame(ctx, obstacle, camera, stage, width, height)
+  else if (obstacle[0] === GAP) drawGap(ctx, obstacle, camera, stage, width, height)
+  else if (obstacle[0] === BRIDGE) drawBridge(ctx, obstacle, index, run, camera, stage, width, height)
+  else if (obstacle[0] === FINISH) drawFinish(ctx, obstacle, camera, stage, width, height)
 }
 
 function formatTime(seconds) {
@@ -205,20 +223,21 @@ function drawHud(ctx, run, width, height) {
   if (sub) shadowText(ctx, sub, width / 2, height * .34, clamp(width * .035, 14, 28))
 }
 
-export function render(ctx, run, stage, width, height) {
+export function render(ctx, run, camera, stage, width, height) {
   ctx.fillStyle = SKY
   ctx.fillRect(0, 0, width, height)
-  drawLava(ctx, run, width, height)
-  drawRoad(ctx, run, width, height)
+  drawLava(ctx, run, camera, stage, width, height)
+  drawRoad(ctx, camera, stage, width, height)
 
   const visible = stage.obstacles
-    .map((obstacle, index) => ({ obstacle, index, distance:obstacle[1] - run.z }))
-    .filter(item => item.distance + (item.obstacle[0] === 1 ? item.obstacle[4] : item.obstacle[3]) >= NEAR && item.distance <= FAR)
-    .sort((a, b) => b.distance - a.distance)
+    .map((obstacle, index) => ({ obstacle, index, depth:obstacle[1] - camera.z }))
+    .filter(item => item.depth > 0 && item.depth <= FAR)
+    .sort((a, b) => b.depth - a.depth)
 
-  for (const item of visible) if (item.distance >= FOREGROUND) drawObstacle(ctx, item, run, width, height)
-  const player = projectPoint(run.x, run.y, 40, width, height)
+  const elevation = roadAt(stage, run.z)?.elevation ?? 0
+  const player = projectPoint(camera, run.x, elevation + run.y, run.z, width, height)
+  for (const item of visible) if (item.depth >= player.depth) drawObstacle(ctx, item, run, camera, stage, width, height)
   drawRunner(ctx, run, player.x, player.y, runnerScale(width, height) * player.scale)
-  for (const item of visible) if (item.distance < FOREGROUND) drawObstacle(ctx, item, run, width, height)
+  for (const item of visible) if (item.depth < player.depth) drawObstacle(ctx, item, run, camera, stage, width, height)
   drawHud(ctx, run, width, height)
 }
