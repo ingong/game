@@ -43,7 +43,7 @@ export function stepRun(run, input, dt, stage) {
   next.x=clamp(next.x+next.vx*dt,-31,31)
   next.z+=next.speed*dt
 
-  if (input.jumpPressed && run.jumps === 0) {
+  if (input.jumpPressed && run.grounded && run.jumps === 0) {
     next.vy=MOTION.jumpImpulse
     next.grounded=false
     next.jumps=1
@@ -53,6 +53,7 @@ export function stepRun(run, input, dt, stage) {
   }
   next.vy-=MOTION.gravity*dt
   next.y=run.y+next.vy*dt
+  next.landing=Math.max(0,next.landing-5*dt)
   if(next.y<=0){
     const landed=!run.grounded
     next.y=0
@@ -69,7 +70,6 @@ export function stepRun(run, input, dt, stage) {
 
   next.time = run.time + dt
   next.anim = run.anim + next.speed * dt * .055
-  next.landing=Math.max(0,next.landing-5*dt)
   if (next.time >= stage.timeLimit) {
     next.mode = 'failure'
     next.failReason = 'TIME'

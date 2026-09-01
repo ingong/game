@@ -28,6 +28,23 @@ test('Down brakes harder than rolling friction and never reverses', () => {
   assert.ok(b.speed>=0)
 })
 
+test('an airborne run with no jumps ignores a ground jump press', () => {
+  const run={...createRun(stage),mode:'running',grounded:false,jumps:0,y:1}
+  const next=stepRun(run,{...idle,jumpPressed:true},1/120,stage)
+  assert.equal(next.jumps,0)
+  assert.equal(next.grounded,false)
+  assert.ok(next.vy<0)
+})
+
+test('the first ground-contact transition exposes landing and increments landingId once', () => {
+  const run={...createRun(stage),mode:'running',grounded:false,jumps:1,y:.1,vy:-20}
+  const landed=stepRun(run,idle,1/120,stage)
+  assert.equal(landed.landing,1)
+  assert.equal(landed.landingId,1)
+  const settled=stepRun(landed,idle,1/120,stage)
+  assert.equal(settled.landingId,1)
+})
+
 test('Space permits one jump and one smaller double jump', () => {
   let run={...createRun(stage),mode:'running'}
   run=stepRun(run,{...idle,jumpPressed:true},1/120,stage)
