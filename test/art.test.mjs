@@ -98,8 +98,35 @@ test('runner joins a large head and neck to outside arms and separated legs', ()
   }
   assert.ok(piece(0,-18).some(call => call[0] === 'fillRect' && call[4] >= 12), 'neck is too narrow')
   assert.ok(piece(0,-28).some(call => call[0] === 'fillRect' && call[4] >= 16), 'head is too small')
-  assert.ok(piece(0,-28).some(call => call[0] === 'fillRect' && call[2] >= 8 && call[4] >= 4),
-    'three-quarter muzzle is missing')
+})
+
+test('runner head reads as a centered rear skull without facial projection', () => {
+  const ctx = recordingContext()
+  art.drawRunner(ctx, { anim:0, grounded:true, jumps:0, stumble:0, landing:0 }, 0, 0, 1)
+  const piece = (x, y) => {
+    const start = ctx.calls.findIndex(call => call[0] === 'translate' && call[1] === x && call[2] === y)
+    const end = ctx.calls.findIndex((call, index) => index > start && call[0] === 'restore')
+    return ctx.calls.slice(start, end).filter(call => call[0] === 'fillRect')
+  }
+  const head = piece(0,-28)
+  const horn = piece(0,-42)
+  const left = Math.min(...head.map(([, , x]) => x))
+  const right = Math.max(...head.map(([, , x, , width]) => x + width))
+
+  assert.equal(left, -12, 'rear skull needs a wider left ear line')
+  assert.equal(right, 12, 'rear skull has a side-profile projection')
+  assert.ok(head.some(call => call[2] === -11 && call[3] === -18 && call[4] === 4 && call[5] === 3),
+    'stepped left ear tip is missing')
+  assert.ok(head.some(call => call[2] === 7 && call[3] === -18 && call[4] === 4 && call[5] === 3),
+    'stepped right ear tip is missing')
+  assert.ok(head.some(call => call[2] === -12 && call[3] === -16 && call[4] === 6 && call[5] === 9),
+    'left ear base is missing')
+  assert.ok(head.some(call => call[2] === 6 && call[3] === -16 && call[4] === 6 && call[5] === 9),
+    'right ear base is missing')
+  assert.ok(head.some(call => call[2] === -10 && call[4] === 20), 'rounded rear cranium is missing')
+  assert.ok(!head.some(call => call[2] >= 9 && call[3] >= -2 && call[4] <= 3),
+    'head still contains a right-facing eye, nose, or mouth mark')
+  assert.ok(horn.some(call => call[2] === -2 && call[4] === 4), 'horn is not centered')
 })
 
 test('mane and tail each carry a complete readable rainbow', () => {
