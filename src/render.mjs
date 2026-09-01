@@ -17,7 +17,7 @@ const THEME_MARKERS = ['#b83a2d', '#65162a', '#ff8b20', '#2263a8', '#f7e7c6']
 const NEAR = 1
 const FAR = 220
 const STRIP = 4
-const RUNNER_WORLD_TO_ART = .14
+export const RUNNER_WORLD_TO_ART = .095
 
 export const stageElevation = (stage, z) =>
   roadAt(stage, Math.min(z, stage.length))?.elevation ?? 0

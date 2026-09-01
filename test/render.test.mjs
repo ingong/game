@@ -64,6 +64,10 @@ const obstacleDelta = (type, operation, overrides = {}) => {
   return operationCount(withObstacle, operation) - operationCount(withoutObstacle, operation)
 }
 
+test('runner display scale keeps the course readable around the character', () => {
+  assert.equal(renderer.RUNNER_WORLD_TO_ART, .095)
+})
+
 test('cleared overlapping solids draw before the airborne runner', () => {
   const fixtures = [
     [RED_STAGE.obstacles.find(obstacle => obstacle[0] === HURDLE), 0],
@@ -122,7 +126,7 @@ test('runner root scale stays readable in the default logical chase view', () =>
 
   const anchor = runnerAnchor(ctx.calls)
   const rootScale = ctx.calls.slice(anchor + 1).find(call => call[0] === 'scale')
-  assert.ok(rootScale[1] >= .8 && rootScale[1] <= 1.2, `runner root scale ${rootScale[1]}`)
+  assert.ok(rootScale[1] >= .58 && rootScale[1] <= .68, `runner root scale ${rootScale[1]}`)
   assert.equal(rootScale[1], rootScale[2])
 })
 

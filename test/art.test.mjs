@@ -4,16 +4,16 @@ import { readFile } from 'node:fs/promises'
 import * as art from '../src/art.mjs'
 
 const POSES = [
-  [0,2,-2,-2,2,2,-2,-2,1,0],
-  [-1,1,-1,-1,1,1,-1,-1,2,-1],
-  [-1,0,2,0,-2,0,2,0,-2,0],
-  [0,3,-2,-3,2,2,1,-2,-2,1],
-  [1,2,-1,-2,1,1,-2,-1,1,0],
-  [1,1,1,-1,-1,0,-1,0,1,-1],
-  [-1,4,-3,-3,2,1,3,-1,-3,-2],
-  [0,5,-2,-5,2,4,-3,-4,3,-4],
-  [3,5,-3,-1,-2,3,-2,-1,3,2],
-  [0,2,-2,-2,2,4,-4,-4,4,4]
+  [0,2,-1,-2,1,3,-2,-2,1,0],
+  [-1,1,-1,-1,1,2,-1,-1,1,-1],
+  [-1,0,1,0,-1,0,1,0,-1,0],
+  [0,-2,1,2,-1,-2,1,3,-2,1],
+  [1,-1,1,1,-1,-1,1,2,-1,0],
+  [1,0,-1,0,1,0,-1,0,1,-1],
+  [-1,3,-2,-3,2,2,2,-2,-2,-2],
+  [0,4,-2,-4,2,3,-3,-3,3,-4],
+  [3,3,-2,-1,0,2,-2,-1,2,2],
+  [0,1,-1,-1,1,3,-3,-3,3,4]
 ]
 
 const rainbow = ['#f04432','#ff7a1a','#ffd43b','#4ecb55','#24b8ea','#7b42d6']
@@ -86,7 +86,7 @@ test('runner joins a large head and neck to outside arms and separated legs', ()
   const ctx = recordingContext()
   art.drawRunner(ctx, { anim:0, grounded:true, jumps:0, stumble:0, landing:0 }, 0, 0, 1)
   const translations = ctx.calls.filter(call => call[0] === 'translate')
-  for (const anchor of [[17,-10],[-17,-10],[6,13],[-6,13],[0,-18],[0,-28]]) {
+  for (const anchor of [[16,-9],[-16,-9],[6,13],[-6,13],[0,-18],[0,-28]]) {
     assert.ok(translations.some(call => call[1] === anchor[0] && call[2] === anchor[1]),
       `missing anchor ${anchor}`)
   }
@@ -98,6 +98,27 @@ test('runner joins a large head and neck to outside arms and separated legs', ()
   }
   assert.ok(piece(0,-18).some(call => call[0] === 'fillRect' && call[4] >= 12), 'neck is too narrow')
   assert.ok(piece(0,-28).some(call => call[0] === 'fillRect' && call[4] >= 16), 'head is too small')
+})
+
+test('runner uses compact chibi limb lengths and oversized boots', () => {
+  const ctx = recordingContext()
+  art.drawRunner(ctx, { anim:0, grounded:true, jumps:0, stumble:0, landing:0 }, 0, 0, 1)
+  const piece = (x, y) => {
+    const start = ctx.calls.findIndex(call => call[0] === 'translate' && call[1] === x && call[2] === y)
+    const end = ctx.calls.findIndex((call, index) => index > start && call[0] === 'restore')
+    return ctx.calls.slice(start, end)
+  }
+  const arm = piece(16,-9)
+  const leg = piece(6,13)
+  const advances = calls => calls.filter(call => call[0] === 'translate').slice(1).map(call => call.slice(1))
+  const rects = calls => calls.filter(call => call[0] === 'fillRect')
+
+  assert.deepEqual(advances(arm), [[0,6],[0,5]], 'hands do not stay close to the hips')
+  assert.ok(rects(arm).every(call => call[5] <= 8), 'arm pieces still use long dangling rectangles')
+  assert.deepEqual(advances(leg), [[0,5],[0,4]], 'knees and boots are too far below the shorts')
+  assert.ok(rects(leg).every(call => call[5] <= 7), 'leg pieces still use stretched rectangles')
+  assert.ok(rects(leg).some(call => call[1] === '#1b1844' && call[4] >= 10),
+    'compact oversized boot silhouette is missing')
 })
 
 test('runner head reads as a centered rear skull without facial projection', () => {
