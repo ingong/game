@@ -484,6 +484,16 @@ function drawHud(ctx, run, width, height) {
   }
 }
 
+export function obstacleDrawsBeforeRunner(item, run, playerDepth) {
+  if (item.depth >= playerDepth) return true
+  const bounds = obstacleBounds(item.obstacle, run.time)
+  const type = item.obstacle[0]
+  const solid = type === HURDLE || type === PISTON || type === FIRE && bounds.active
+  return solid && run.y >= bounds.height &&
+    Math.abs(run.x-bounds.x) <= bounds.width/2 &&
+    Math.abs(run.z-bounds.z) <= bounds.depth/2
+}
+
 export function render(ctx, run, camera, stage, width, height) {
   ctx.fillStyle = SKY
   ctx.fillRect(0, 0, width, height)
@@ -500,12 +510,16 @@ export function render(ctx, run, camera, stage, width, height) {
   const elevation = stageElevation(stage, run.z)
   const player = project(camera, run.x, elevation+run.y, run.z, width, height)
   drawRunnerShadow(ctx, run, camera, stage, width, height)
-  for (const item of visible) if (item.depth >= player.depth) drawObstacle(ctx,item,run,camera,stage,width,height)
+  for (const item of visible) if (obstacleDrawsBeforeRunner(item,run,player.depth)) {
+    drawObstacle(ctx,item,run,camera,stage,width,height)
+  }
   drawLandingSparks(ctx, run, player)
   const stumbleOffset = run.stumble > 0 ? -Math.sign(run.vx||1)*run.stumble*8 : 0
   drawRunner(ctx, run, player.x+stumbleOffset, player.y,
     runnerScale(width,height)*player.scale*RUNNER_WORLD_TO_ART)
   drawStumbleImpact(ctx, run, player)
-  for (const item of visible) if (item.depth < player.depth) drawObstacle(ctx,item,run,camera,stage,width,height)
+  for (const item of visible) if (!obstacleDrawsBeforeRunner(item,run,player.depth)) {
+    drawObstacle(ctx,item,run,camera,stage,width,height)
+  }
   drawHud(ctx, run, width, height)
 }

@@ -1,9 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createCamera } from '../src/camera.mjs'
-import { render } from '../src/render.mjs'
+import * as renderer from '../src/render.mjs'
 import { createRun } from '../src/sim.mjs'
 import { BRIDGE, FINISH, FIRE, GAP, HURDLE, PISTON, RED_STAGE } from '../src/stage.mjs'
+
+const { render } = renderer
 
 function recordingContext() {
   const calls = []
@@ -53,6 +55,42 @@ const renderAt = (z, overrides = {}, stage = RED_STAGE, width = 320, height = 18
 
 const drawCount = calls => calls.filter(call => call[0] === 'fill' || call[0] === 'fillRect').length
 const polygonCount = calls => calls.filter(call => call[0] === 'fill').length
+
+test('cleared overlapping solids draw before the airborne runner', () => {
+  const fixtures = [
+    [RED_STAGE.obstacles.find(obstacle => obstacle[0] === HURDLE), 0],
+    [RED_STAGE.obstacles.find(obstacle => obstacle[0] === FIRE), 1.2],
+    [RED_STAGE.obstacles.find(obstacle => obstacle[0] === PISTON), 0]
+  ]
+
+  for (const [obstacle, time] of fixtures) {
+    const run = { ...createRun(RED_STAGE), x:obstacle[2], z:obstacle[1]+1, y:obstacle[5], time }
+    const item = { obstacle, index:0, depth:23 }
+    assert.equal(renderer.obstacleDrawsBeforeRunner?.(item, run, 24), true,
+      `solid ${obstacle[0]} did not stay behind the cleared runner`)
+  }
+})
+
+test('near overlapping solids draw after a grounded or low runner', () => {
+  for (const type of [HURDLE, PISTON]) {
+    const obstacle = RED_STAGE.obstacles.find(item => item[0] === type)
+    const run = { ...createRun(RED_STAGE), x:obstacle[2], z:obstacle[1]+1, y:obstacle[5]-.1, time:0 }
+    const item = { obstacle, index:0, depth:23 }
+    assert.equal(renderer.obstacleDrawsBeforeRunner?.(item, run, 24), false,
+      `low runner incorrectly cleared solid ${type}`)
+  }
+})
+
+test('normal near-depth order resumes after leaving a solid footprint', () => {
+  const obstacle = RED_STAGE.obstacles.find(item => item[0] === HURDLE)
+  const run = {
+    ...createRun(RED_STAGE),
+    x:obstacle[2], z:obstacle[1]+obstacle[4]/2+.1, y:obstacle[5], time:0
+  }
+  const item = { obstacle, index:0, depth:22.4 }
+
+  assert.equal(renderer.obstacleDrawsBeforeRunner?.(item, run, 24), false)
+})
 
 test('render draws road, projected runner, and HUD without DOM or images', () => {
   const run = { ...createRun(RED_STAGE), mode:'running', x:4, y:3, z:200 }
