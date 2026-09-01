@@ -50,6 +50,17 @@ test('runner exposes six run phases and distinct airborne feedback', () => {
   )
 })
 
+test('runner atlas selects idle, alternating strides, jump, and stumble frames', () => {
+  const base = { mode:'running', anim:0, grounded:true, jumps:0, stumble:0, landing:0 }
+  assert.equal(art.runnerFrame({ ...base, mode:'title' }), 0)
+  assert.equal(art.runnerFrame(base), 1)
+  assert.equal(art.runnerFrame({ ...base, anim:1/6 }), 2)
+  assert.equal(art.runnerFrame({ ...base, grounded:false, jumps:1 }), 3)
+  assert.equal(art.runnerFrame({ ...base, grounded:false, jumps:2 }), 3)
+  assert.equal(art.runnerFrame({ ...base, stumble:.2 }), 4)
+  assert.equal(art.runnerFrame({ ...base, landing:1 }), 4)
+})
+
 test('stumble and landing feedback take priority over locomotion poses', () => {
   assert.equal(art.runnerPose({ anim:0, grounded:false, jumps:2, stumble:.1, landing:1 }), 8)
   assert.equal(art.runnerPose({ anim:0, grounded:true, jumps:0, stumble:0, landing:.46 }), 9)
@@ -195,7 +206,16 @@ test('double jump mirrors its knees and streams the tail upward', () => {
   assert.ok(rotations[6] < -.2, `tail angle ${rotations[6]}`)
 })
 
-test('runtime art has no external sprite source or projection dependency', async () => {
+test('runtime art embeds a compact offline sprite atlas', async () => {
   const source = await readFile(new URL('../src/art.mjs', import.meta.url), 'utf8')
-  assert.doesNotMatch(source, /RUNNER_SHEET_SRC|new Image|drawImage|projectPoint/)
+  const atlas = await readFile(new URL('../assets/concepts/unicorn-chibi-atlas.png', import.meta.url))
+  assert.match(art.RUNNER_SHEET_SRC, /^data:image\/png;base64,/)
+  assert.ok(art.RUNNER_SHEET_SRC.length < 4000)
+  assert.doesNotMatch(art.RUNNER_SHEET_SRC, /https?:|assets\//)
+  assert.deepEqual(Buffer.from(art.RUNNER_SHEET_SRC.split(',')[1], 'base64'), atlas,
+    'embedded atlas must match the checked-in compact source')
+  assert.match(source,
+    /drawImage\(RUNNER_SHEET, runnerFrame\(run\) \* 32, 0, 32, 56, -17, -60, 34, 60\)/,
+    'atlas must draw complete source frames at the measured centered destination')
+  assert.doesNotMatch(source, /projectPoint/)
 })

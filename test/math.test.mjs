@@ -19,6 +19,6 @@ test('world projection moves the runner while the camera follows late', () => {
 })
 
 test('logical viewport chooses stable integer pixel scaling', () => {
-  assert.deepEqual(logicalViewport(1280, 720), { width:320, height:180, pixelScale:4 })
+  assert.deepEqual(logicalViewport(1280, 720), { width:640, height:360, pixelScale:2 })
   assert.deepEqual(logicalViewport(390, 844), { width:195, height:422, pixelScale:2 })
 })

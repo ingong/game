@@ -11,7 +11,7 @@ export function projectPoint(camera, x, y, z, w, h) {
 }
 
 export function logicalViewport(cssW, cssH) {
-  const pixelScale = clamp(Math.floor(Math.min(cssW, cssH) / 180), 2, 4)
+  const pixelScale = 2
   return {
     width:Math.ceil(cssW / pixelScale),
     height:Math.ceil(cssH / pixelScale),

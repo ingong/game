@@ -1,4 +1,7 @@
 export const RUNNER_PALETTE = ['#1b1844','#fff4dd','#b9c8ea','#0e58d6','#07348f','#f04432','#ff7a1a','#ffd43b','#4ecb55','#24b8ea','#7b42d6']
+export const RUNNER_SHEET_SRC = 'data:image/png;base64,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'
+const RUNNER_SHEET = typeof Image === 'undefined' ? null : new Image()
+if (RUNNER_SHEET) RUNNER_SHEET.src = RUNNER_SHEET_SRC
 const A = Math.PI / 14
 
 export const RUNNER_POSES = [
@@ -111,6 +114,13 @@ export function runnerPose(run) {
   return Math.floor(run.anim * 6) % 6
 }
 
+export function runnerFrame(run) {
+  if (run.mode === 'title') return 0
+  if (run.stumble > 0 || run.landing > .45) return 4
+  if (!run.grounded) return 3
+  return 1 + runnerPose(run) % 2
+}
+
 export function runnerScale(width, height) {
   return Math.max(.8, Math.min(1.25, Math.min(width / 1280, height / 720)))
 }
@@ -171,6 +181,15 @@ export function drawRunner(ctx, run, x, y, scale) {
   ctx.translate(Math.round(x), Math.round(y))
   ctx.scale(scale, scale)
   if (run.landing > 0) ctx.scale(1 + .12 * run.landing, 1 - .12 * run.landing)
+
+  if (RUNNER_SHEET?.complete && RUNNER_SHEET.naturalWidth) {
+    ctx.translate(0, Math.round(bob))
+    ctx.rotate(lean * A * .35)
+    ctx.drawImage(RUNNER_SHEET, runnerFrame(run) * 32, 0, 32, 56, -17, -60, 34, 60)
+    ctx.restore()
+    return
+  }
+
   ctx.translate(0, Math.round(-29 + bob))
   ctx.rotate(lean * A)
 
