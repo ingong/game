@@ -2,26 +2,42 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRun, restartRun, stepRun } from '../src/sim.mjs'
 
-const stage = { timeLimit: 45, length: 900, obstacles: [] }
+const stage = { timeLimit:45, length:5000, obstacles:[] }
 const idle = { left:false, right:false, up:false, down:false, jumpPressed:false }
 
-test('forward speed remains within the designed limits', () => {
-  let run = createRun(stage)
-  run.mode = 'running'
-  for (let i = 0; i < 600; i++) run = stepRun(run, { ...idle, up:true }, 1 / 120, stage)
-  assert.ok(run.speed <= 30)
-  for (let i = 0; i < 600; i++) run = stepRun(run, { ...idle, down:true }, 1 / 120, stage)
-  assert.ok(run.speed >= 12)
+test('Up accelerates from rest and releasing Up stops forward travel', () => {
+  let run = { ...createRun(stage), mode:'running' }
+  for (let i=0;i<240;i++) run=stepRun(run,{...idle,up:true},1/120,stage)
+  assert.ok(run.speed > 25)
+  const movingZ=run.z
+  for (let i=0;i<480;i++) run=stepRun(run,idle,1/120,stage)
+  assert.equal(run.speed,0)
+  assert.ok(run.z > movingZ)
+  const stoppedZ=run.z
+  for (let i=0;i<120;i++) run=stepRun(run,idle,1/120,stage)
+  assert.equal(run.speed,0)
+  assert.equal(run.z,stoppedZ)
 })
 
-test('jump is one impulse and lands back on the road', () => {
-  let run = createRun(stage)
-  run.mode = 'running'
-  run = stepRun(run, { ...idle, jumpPressed:true }, 1 / 120, stage)
-  assert.ok(run.vy > 0)
-  for (let i = 0; i < 240; i++) run = stepRun(run, idle, 1 / 120, stage)
-  assert.equal(run.y, 0)
-  assert.equal(run.grounded, true)
+test('Down brakes harder than rolling friction and never reverses', () => {
+  let a={...createRun(stage),mode:'running',speed:30}
+  let b={...a}
+  for(let i=0;i<60;i++) a=stepRun(a,idle,1/120,stage)
+  for(let i=0;i<60;i++) b=stepRun(b,{...idle,down:true},1/120,stage)
+  assert.ok(b.speed<a.speed)
+  assert.ok(b.speed>=0)
+})
+
+test('Space permits one jump and one smaller double jump', () => {
+  let run={...createRun(stage),mode:'running'}
+  run=stepRun(run,{...idle,jumpPressed:true},1/120,stage)
+  const firstVy=run.vy
+  run=stepRun(run,{...idle,jumpPressed:true},1/120,stage)
+  const secondVy=run.vy
+  run=stepRun(run,{...idle,jumpPressed:true},1/120,stage)
+  assert.equal(run.jumps,2)
+  assert.ok(firstVy>secondVy)
+  assert.ok(secondVy>0)
 })
 
 test('timer expiry enters failure state', () => {
