@@ -50,11 +50,12 @@ test('runner exposes six run phases and distinct airborne feedback', () => {
   )
 })
 
-test('runner atlas selects idle, alternating strides, jump, and stumble frames', () => {
+test('runner atlas uses planted contacts between opposite lifted-leg strides', () => {
   const base = { mode:'running', anim:0, grounded:true, jumps:0, stumble:0, landing:0 }
   assert.equal(art.runnerFrame({ ...base, mode:'title' }), 0)
-  assert.equal(art.runnerFrame(base), 1)
-  assert.equal(art.runnerFrame({ ...base, anim:1/6 }), 2)
+  assert.deepEqual([0,.25,.5,.75].map(anim => art.runnerFrame({ ...base, anim })), [1,0,2,0])
+  assert.deepEqual([0,.25,.5,.75].map(anim => art.runnerMirror({ ...base, anim })),
+    [false,false,true,false])
   assert.equal(art.runnerFrame({ ...base, grounded:false, jumps:1 }), 3)
   assert.equal(art.runnerFrame({ ...base, grounded:false, jumps:2 }), 3)
   assert.equal(art.runnerFrame({ ...base, stumble:.2 }), 4)

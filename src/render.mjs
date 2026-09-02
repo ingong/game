@@ -157,6 +157,11 @@ function drawThemeProp(ctx, run, camera, stage, z, index, road, width, height) {
   const x = Math.round(point.x)
   const y = Math.round(point.y)
   const marker = THEME_MARKERS[road.theme]
+  const post = x-side*size*4
+
+  drawLine(ctx, INK, size*2.2, [{x:post,y},{x:post,y:y-size*11}])
+  drawLine(ctx, STEEL, size*.75, [{x:post,y},{x:post,y:y-size*10}])
+  drawLine(ctx, YELLOW, size*.45, [{x:post,y:y-size*8},{x,y:y-size*10}])
 
   if (road.theme === 0) {
     ctx.fillStyle = INK
@@ -172,8 +177,6 @@ function drawThemeProp(ctx, run, camera, stage, z, index, road, width, height) {
     ctx.fillRect(x+side*size*2.2, y-size*13, size*2.4, size*6)
     ctx.fillStyle = STEEL
     ctx.fillRect(x+side*size*1.8, y-size*13.5, size*3.2, size)
-    drawLine(ctx, STEEL, size*.5, [{x:x-side*size*4,y},{x:x-side*size*4,y:y-size*9}])
-    drawLine(ctx, YELLOW, size*.4, [{x:x-size*3,y:y-size*.5},{x:x+size*3,y:y-size*.5}])
     drawGear(ctx, x-side*size*3.1, y-size*6.8, size*1.5, run.time*1.4+value, YELLOW)
   } else if (road.theme === 1) {
     drawLine(ctx, INK, size*2.2, [{x:x-side*size*3,y},{x:x-side*size*3,y:y-size*11}])
@@ -328,14 +331,25 @@ function drawFlame(ctx, obstacle, run, camera, stage, width, height) {
   ctx.fillRect(base.x-cell, pilotY-cell*2, cell*2, cell*2)
   if (!bounds.active) return
   const top = base.y-bounds.height*base.scale
-  const pulse = 1 + Math.sin(run.time*9+obstacle[7]*4)*.12
-  const flameWidth = (right-left)*pulse
-  const x0 = base.x-flameWidth/2
-  polygon(ctx, SKY, [[x0,base.y],[x0+cell,top+cell*2],[base.x-cell,top],
-    [base.x+cell,top+cell*2],[base.x+flameWidth/2-cell,top+cell],[base.x+flameWidth/2,base.y]])
-  polygon(ctx, ORANGE, [[x0+cell,base.y],[base.x-cell,top+cell*3],
-    [base.x+cell,top+cell*2],[base.x+flameWidth/2-cell,base.y]])
-  polygon(ctx, YELLOW, [[base.x-cell,base.y],[base.x,top+cell*4],[base.x+cell,base.y]])
+  const flameWidth = right-left
+  const phase = ((run.time*8+obstacle[7]*5)|0)%3-1
+  const flameHeight = base.y-top
+  for (const [offset,rise,lean] of [[-.32,.68,-1],[0,1,1],[.32,.62,-1]]) {
+    const cx = base.x+flameWidth*offset+phase*cell*lean
+    for (const [color,spread,inset] of [[INK,.19,0],[SKY,.16,1],[ORANGE,.1,3]]) {
+      const half = flameWidth*spread
+      const high = Math.max(cell*2,flameHeight*rise-cell*inset)
+      const peak = base.y-high
+      polygon(ctx, color, [[cx-half,base.y],[cx-half*.82,base.y-high*.26],
+        [cx-half*.42,base.y-high*.44],[cx-cell*lean,peak+high*.22],
+        [cx+cell*lean,peak],[cx+cell*lean*1.5,peak+high*.18],
+        [cx+half*.38,base.y-high*.5],[cx+half*.82,base.y-high*.25],[cx+half,base.y]])
+    }
+  }
+  polygon(ctx, YELLOW, [[base.x-cell*1.4,base.y],[base.x-cell,top+flameHeight*.58],
+    [base.x,top+flameHeight*.42],[base.x+cell,top+flameHeight*.62],[base.x+cell*1.4,base.y]])
+  for (const side of [-1,1]) drawSpark(ctx, base.x+side*flameWidth*.3+phase*cell,
+    top+flameHeight*(side<0?.28:.44), cell*(side<0?.8:.55), side<0?YELLOW:ORANGE)
 }
 
 function drawGap(ctx, obstacle, run, camera, stage, width, height) {

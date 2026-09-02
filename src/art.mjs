@@ -118,8 +118,11 @@ export function runnerFrame(run) {
   if (run.mode === 'title') return 0
   if (run.stumble > 0 || run.landing > .45) return 4
   if (!run.grounded) return 3
-  return 1 + runnerPose(run) % 2
+  const stride = Math.floor(run.anim * 4) % 4
+  return stride & 1 ? 0 : 1 + stride / 2
 }
+
+export const runnerMirror = run => runnerFrame(run) === 2
 
 export function runnerScale(width, height) {
   return Math.max(.8, Math.min(1.25, Math.min(width / 1280, height / 720)))
@@ -185,6 +188,7 @@ export function drawRunner(ctx, run, x, y, scale) {
   if (RUNNER_SHEET?.complete && RUNNER_SHEET.naturalWidth) {
     ctx.translate(0, Math.round(bob))
     ctx.rotate(lean * A * .35)
+    if (runnerMirror(run)) ctx.scale(-1, 1)
     ctx.drawImage(RUNNER_SHEET, runnerFrame(run) * 32, 0, 32, 56, -17, -60, 34, 60)
     ctx.restore()
     return

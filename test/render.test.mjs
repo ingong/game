@@ -63,6 +63,13 @@ const obstacleDelta = (type, operation, overrides = {}) => {
   const withoutObstacle = renderAt(z, overrides, { ...RED_STAGE, obstacles:[] })
   return operationCount(withObstacle, operation) - operationCount(withoutObstacle, operation)
 }
+const obstacleColorDelta = (type, operation, color, overrides = {}) => {
+  const obstacle = RED_STAGE.obstacles.find(item => item[0] === type)
+  const z = obstacle[1] - 20
+  const count = calls => calls.filter(call => call[0] === operation && call[1] === color).length
+  return count(renderAt(z, overrides, { ...RED_STAGE, obstacles:[obstacle] })) -
+    count(renderAt(z, overrides, { ...RED_STAGE, obstacles:[] }))
+}
 
 test('runner display scale keeps the course readable around the character', () => {
   assert.equal(renderer.RUNNER_WORLD_TO_ART, .095)
@@ -178,7 +185,14 @@ test('hurdle projects a top rail, striped face, and two planted feet', () => {
 
 test('flame projects a slatted floor vent beneath its clean flame column', () => {
   assert.ok(obstacleDelta(FIRE, 'fillRect', { time:1.2 }) >= 7)
-  assert.ok(obstacleDelta(FIRE, 'fill', { time:1.2 }) >= 8)
+  assert.ok(obstacleColorDelta(FIRE, 'fill', '#d51d24', { time:1.2 }) >= 3,
+    'active flame needs three readable outer lobes')
+  assert.ok(obstacleColorDelta(FIRE, 'fill', '#ff641e', { time:1.2 }) >= 3,
+    'active flame needs layered orange cores')
+  assert.ok(obstacleDelta(FIRE, 'lineTo', { time:1.2 }) >= 90,
+    'flame tongues need stepped shoulders instead of triangular cones')
+  assert.ok(obstacleDelta(FIRE, 'stroke', { time:1.2 }) >= 2,
+    'active flame needs separate rising embers')
 })
 
 test('gap projects cracked near and far road lips over animated lava', () => {
@@ -219,6 +233,17 @@ test('section dressing combines curved machinery with structural linework', () =
     const calls = renderAt(z, {}, { ...RED_STAGE, obstacles:[] })
     assert.ok(operationCount(calls, 'arc') >= 6, `section at ${z} lacks curved machinery`)
     assert.ok(operationCount(calls, 'stroke') >= 10, `section at ${z} lacks structural linework`)
+  }
+})
+
+test('every section identity is mounted on the same steel and warning-light framework', () => {
+  for (let theme=0; theme<5; theme++) {
+    const stage = { ...RED_STAGE, sections:[[0,1000,30,0,0,theme,theme+11]], obstacles:[] }
+    const calls = renderAt(100, {}, stage)
+    assert.ok(calls.some(call => call[0] === 'stroke' && call[1] === '#9a8790'),
+      `section ${theme} is missing its steel framework`)
+    assert.ok(calls.some(call => call[0] === 'stroke' && call[1] === '#ffd34d'),
+      `section ${theme} is missing its shared warning rail`)
   }
 })
 
