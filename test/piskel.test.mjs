@@ -87,5 +87,5 @@ test('compilePiskel enforces the runner contract, preserves transparency, and em
 test('checked-in Piskel source reproduces the current runtime atlas', () => {
   const source = readFileSync(new URL('../assets/concepts/unicorn-runner.piskel',import.meta.url),'utf8')
   const runtime = readFileSync(new URL('../assets/runtime/unicorn-chibi-atlas.png',import.meta.url))
-  assert.deepEqual(compilePiskel(source),runtime)
+  assert.deepEqual(inspectPng(compilePiskel(source),{pixels:true}),inspectPng(runtime,{pixels:true}))
 })

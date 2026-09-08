@@ -127,3 +127,8 @@ independent of the final archive budget: Base64, minification, and ZIP compressi
 change contribution sizes. The report's role totals count physical asset files,
 excluding procedural JavaScript to avoid describing source-code bytes as image
 storage. A procedural entry's own card still displays its source-file size.
+
+
+## Node / zlib 버전 호환성
+
+PNG 생성 결과는 zlib 버전에 따라 압축 바이트가 달라질 수 있다. `runner-export --check`는 PNG를 검증·디코딩한 뒤 가로·세로·RGBA 픽셀을 비교한다. 픽셀이 같으면 저장된 작은 PNG를 유지하며, 픽셀 변경이나 손상된 PNG는 계속 거부한다. 임베딩과 실제 PNG 파일의 바이트 일치 검사 및 파일·ZIP 예산 검사는 별도로 유지한다. Node 23과 CI의 Node 24.20.0에서 전체 테스트를 검증했다.

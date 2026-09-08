@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { inspectPng } from './png-info.mjs'
 import { compilePiskel } from './piskel.mjs'
 export { packPixels, encodeIndexedPng } from './indexed-png.mjs'
 
@@ -16,10 +17,14 @@ export function compileRunner() {
 export function exportRunner({check=false}={}) {
   const png=compileRunner(), target=resolve(root,RUNNER_EXPORT.target)
   const current=existsSync(target)?readFileSync(target):null
+  // zlib versions may encode identical pixels differently. Preserve the checked-in
+  // compact file when its decoded dimensions and RGBA content still match.
+  const expected=inspectPng(png,{pixels:true}),actual=current?inspectPng(current,{pixels:true}):null
+  const fresh=actual&&actual.width===expected.width&&actual.height===expected.height&&actual.rgba.equals(expected.rgba)
   if(check) {
-    if(!current || !png.equals(current)) throw new Error('Runner export is stale. Run npm run assets:generate')
-  } else if(!current || !png.equals(current)) writeFileSync(target,png)
-  return png.length
+    if(!fresh) throw new Error('Runner export is stale. Run npm run assets:generate')
+  } else if(!fresh) writeFileSync(target,png)
+  return fresh?current.length:png.length
 }
 if(process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const args=process.argv.slice(2)
