@@ -1,9 +1,14 @@
+import {REFERENCE_STAGE as RED_STAGE} from './fixtures/reference-course.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import {obstacleRecipe} from '../src/obstacles.mjs'
 import { createCamera } from '../src/camera.mjs'
 import * as renderer from '../src/render.mjs'
 import { createRun } from '../src/sim.mjs'
-import { BRIDGE, FINISH, FIRE, GAP, HURDLE, PISTON, RED_STAGE } from '../src/stage.mjs'
+import { projectPoint } from '../src/math.mjs'
+import { NAVY, EMBER, ORANGE, STEEL, YELLOW, COBALT } from '../src/palette.mjs'
+import { VISUAL_DEFAULTS } from '../tools/map-settings-model.mjs'
+import { BRIDGE, FINISH, FIRE, GAP, HURDLE, PISTON, SPRING, STAGES } from '../src/stage.mjs'
 
 const { render } = renderer
 
@@ -23,6 +28,8 @@ function recordingContext() {
     moveTo(x, y) { calls.push(['moveTo', x, y]) },
     lineTo(x, y) { calls.push(['lineTo', x, y]) },
     closePath() { calls.push(['closePath']) },
+    clip() { calls.push(['clip']) },
+    rect(...args) {calls.push(['rect',...args])},
     fill() { calls.push(['fill', this.fillStyle, this.globalAlpha]) },
     stroke() { calls.push(['stroke', this.strokeStyle, this.lineWidth, this.globalAlpha]) },
     arc(x, y, radius, start, end) { calls.push(['arc', x, y, radius, start, end]) },
@@ -32,7 +39,12 @@ function recordingContext() {
     restore() { calls.push(['restore']) },
     translate(x, y) { calls.push(['translate', x, y]) },
     rotate(angle) { calls.push(['rotate', angle]) },
-    scale(x, y) { calls.push(['scale', x, y]) }
+    scale(x, y) { calls.push(['scale', x, y]) },
+    measureText(value) {
+      const size = Number.parseInt(this.font.match(/\d+px/)?.[0] ?? '10', 10)
+      return { width:Array.from(value).reduce((sum, character) =>
+        sum + (/[^\x00-\xff]/.test(character) ? size : size*.6), 0) }
+    }
   }
 }
 
@@ -75,40 +87,20 @@ test('runner display scale keeps the course readable around the character', () =
   assert.equal(renderer.RUNNER_WORLD_TO_ART, .095)
 })
 
-test('cleared overlapping solids draw before the airborne runner', () => {
-  const fixtures = [
-    [RED_STAGE.obstacles.find(obstacle => obstacle[0] === HURDLE), 0],
-    [RED_STAGE.obstacles.find(obstacle => obstacle[0] === FIRE), 1.2],
-    [RED_STAGE.obstacles.find(obstacle => obstacle[0] === PISTON), 0]
-  ]
-
-  for (const [obstacle, time] of fixtures) {
-    const run = { ...createRun(RED_STAGE), x:obstacle[2], z:obstacle[1]+1, y:obstacle[5], time }
-    const item = { obstacle, index:0, depth:23 }
-    assert.equal(renderer.obstacleDrawsBeforeRunner?.(item, run, 24), true,
-      `solid ${obstacle[0]} did not stay behind the cleared runner`)
+test('near and passed solids retain their complete silhouette without cutaways',()=>{
+  const obstacle=obstacleRecipe(2,100)
+  const stage={...RED_STAGE,obstacles:[obstacle]}
+  const frames=[75,85,95,100,103,110].map(z=>renderAt(z,{},stage))
+  for(const [i,calls] of frames.entries()) {
+    assert.equal(operationCount(calls,'clip'),0)
+    const z=[75,85,95,100,103,110][i]
+    assert.ok(polygonCount(calls)>polygonCount(renderAt(z,{}, {...stage,obstacles:[]})))
+    assert.ok(runnerAnchor(calls)>0)
   }
-})
-
-test('near overlapping solids draw after a grounded or low runner', () => {
-  for (const type of [HURDLE, PISTON]) {
-    const obstacle = RED_STAGE.obstacles.find(item => item[0] === type)
-    const run = { ...createRun(RED_STAGE), x:obstacle[2], z:obstacle[1]+1, y:obstacle[5]-.1, time:0 }
-    const item = { obstacle, index:0, depth:23 }
-    assert.equal(renderer.obstacleDrawsBeforeRunner?.(item, run, 24), false,
-      `low runner incorrectly cleared solid ${type}`)
-  }
-})
-
-test('normal near-depth order resumes after leaving a solid footprint', () => {
-  const obstacle = RED_STAGE.obstacles.find(item => item[0] === HURDLE)
-  const run = {
-    ...createRun(RED_STAGE),
-    x:obstacle[2], z:obstacle[1]+obstacle[4]/2+.1, y:obstacle[5], time:0
-  }
-  const item = { obstacle, index:0, depth:22.4 }
-
-  assert.equal(renderer.obstacleDrawsBeforeRunner?.(item, run, 24), false)
+  const opacity=z=>renderer.obstacleOpacity(100-z)
+  assert.equal(opacity(75),1)
+  assert.ok(opacity(103)>.2)
+  assert.ok(Math.abs(opacity(101.99)-opacity(102.01))<.002,'no pop at the collider rear edge')
 })
 
 test('render draws road, projected runner, and HUD without DOM or images', () => {
@@ -118,11 +110,46 @@ test('render draws road, projected runner, and HUD without DOM or images', () =>
 
   render(ctx, run, camera, RED_STAGE, 320, 180)
 
-  assert.ok(ctx.calls.some(call => call[0] === 'fill' && call[1] === '#790b24'))
+  assert.ok(ctx.calls.some(call => call[0] === 'fill' && call[1] === RED_STAGE.visual.road))
   const anchor = runnerAnchor(ctx.calls)
   assert.ok(anchor >= 0)
   assert.ok(ctx.calls.slice(anchor + 1).some(call => call[0] === 'scale'))
   assert.ok(ctx.calls.some(call => call[0] === 'fillText' && call[1] === 'RED 1'))
+})
+
+test('stone joints stay at the same world position while the camera advances', () => {
+  const stage = { ...RED_STAGE, sections:[[0,1000,30,0,0,0,11]], obstacles:[] }
+  for (const z of [100.1,101.1,103.9,104.1]) {
+    const run = { ...createRun(stage), mode:'running', time:4, speed:28, z }
+    const camera = { ...createCamera(run), z:z-24 }
+    const expected = [[-15,104.12],[15,104.12],[15,104],[-15,104]].map(([x,worldZ]) => {
+      const point = projectPoint(camera,x,.03,worldZ,320,180)
+      return [Math.round(point.x),Math.round(point.y)]
+    })
+    const ctx = recordingContext()
+    render(ctx,run,camera,stage,320,180)
+    let path = [], found = false
+    for (const call of ctx.calls) {
+      if (call[0] === 'beginPath') path = []
+      if (call[0] === 'moveTo' || call[0] === 'lineTo') path.push(call.slice(1))
+      if (call[0] === 'fill' && call[1] === NAVY && JSON.stringify(path) === JSON.stringify(expected)) found = true
+    }
+    assert.ok(found,`world seam at z=104 drifted when the runner reached ${z}`)
+  }
+})
+
+test('map controls change decoration without hiding course obstacles', () => {
+  const stage={...RED_STAGE,visual:{...VISUAL_DEFAULTS,tiles:false,edges:false}}
+  const quiet=renderAt(100,{},stage)
+  const decorated=renderAt(100,{}, {...stage,visual:{...stage.visual,landmarks:true,ripples:4}})
+  assert.ok(drawCount(decorated)>drawCount(quiet),'decoration controls did not change the scene')
+  assert.ok(quiet.some(call => call[0]==='fillRect' && call[1]===stage.visual.void))
+  assert.ok(quiet.some(call => call[0]==='fillRect' && call[1]===stage.visual.sky))
+  const withHurdle=renderAt(72,{},stage)
+  const withoutHurdle=renderAt(72,{}, {...stage,obstacles:[]})
+  assert.ok(drawCount(withHurdle)>drawCount(withoutHurdle))
+  const recolored=renderAt(100,{}, {...stage,visual:{...stage.visual,road:'#123456'}})
+  assert.ok(recolored.some(call => call[0]==='fill' && call[1]==='#123456'))
 })
 
 test('runner root scale stays readable in the default logical chase view', () => {
@@ -164,9 +191,9 @@ test('obstacle art disappears after its world plane passes behind the camera', (
   assert.deepEqual(behind.calls, empty.calls)
 })
 
-test('all six obstacle families add substantial visible geometry', () => {
+test('all seven obstacle families add substantial visible geometry', () => {
   const minimumDraws = new Map([
-    [FIRE, 7], [GAP, 4], [BRIDGE, 7], [FINISH, 8], [HURDLE, 7], [PISTON, 7]
+    [FIRE, 7], [GAP, 4], [BRIDGE, 7], [FINISH, 8], [HURDLE, 7], [PISTON, 7], [SPRING, 7]
   ])
 
   for (const [type, minimum] of minimumDraws) {
@@ -179,28 +206,33 @@ test('all six obstacle families add substantial visible geometry', () => {
   }
 })
 
-test('hurdle projects a top rail, striped face, and two planted feet', () => {
-  assert.ok(obstacleDelta(HURDLE, 'fillRect') >= 7)
+test('crystal sculptures have distinct silhouettes for all four crossing patterns',()=>{
+  const signatures=[1,2,3,4].map(id=>JSON.stringify(renderAt(80,{time:.4},{...RED_STAGE,obstacles:[obstacleRecipe(id,100)]})))
+  assert.equal(new Set(signatures).size,4)
 })
 
-test('flame projects a slatted floor vent beneath its clean flame column', () => {
-  assert.ok(obstacleDelta(FIRE, 'fillRect', { time:1.2 }) >= 7)
-  assert.ok(obstacleColorDelta(FIRE, 'fill', '#d51d24', { time:1.2 }) >= 3,
-    'active flame needs three readable outer lobes')
-  assert.ok(obstacleColorDelta(FIRE, 'fill', '#ff641e', { time:1.2 }) >= 3,
-    'active flame needs layered orange cores')
-  assert.ok(obstacleDelta(FIRE, 'lineTo', { time:1.2 }) >= 90,
-    'flame tongues need stepped shoulders instead of triangular cones')
-  assert.ok(obstacleDelta(FIRE, 'stroke', { time:1.2 }) >= 2,
-    'active flame needs separate rising embers')
+test('storm emitter shows lightning only during its active cycle', () => {
+  assert.ok(obstacleColorDelta(FIRE,'fill', YELLOW,{time:1.2}) >= 1)
+  assert.ok(obstacleColorDelta(FIRE,'fill', '#9c86c9',{time:1.2}) >= 1)
+  const obstacle=RED_STAGE.obstacles.find(o=>o[0]===FIRE)
+  assert.notDeepEqual(renderAt(obstacle[1]-20,{time:1.2},{...RED_STAGE,obstacles:[obstacle]}),
+    renderAt(obstacle[1]-20,{time:2.2},{...RED_STAGE,obstacles:[obstacle]}))
 })
 
-test('gap projects cracked near and far road lips over animated lava', () => {
+test('gap opens onto the cloud layer instead of a filled lava panel', () => {
+  assert.ok(obstacleDelta(GAP, 'clip') >= 1)
   assert.ok(obstacleDelta(GAP, 'stroke') >= 2)
 })
 
-test('piston projects a mechanical cylinder and bolted warning face', () => {
-  assert.ok(obstacleDelta(PISTON, 'arc') >= 6)
+test('road edges display all seven rainbow bands', () => {
+  const calls=renderAt(80,{}, {...RED_STAGE,obstacles:[]})
+  for (const color of ['#ff526e','#ff994d','#ffe16b','#58d995','#4cc9f0','#7a88ff','#be7bff'])
+    assert.ok(calls.some(c=>c[0]==='fill' && c[1]===color),`missing rainbow band ${color}`)
+})
+
+test('moving constructs have distinct silhouettes instead of identical round orbs',()=>{
+  const signatures=[9,10,11,12].map(id=>JSON.stringify(renderAt(80,{time:.4},{...RED_STAGE,obstacles:[obstacleRecipe(id,100)]})))
+  assert.equal(new Set(signatures).size,4)
 })
 
 test('bridge plate projects four bolts plus its crack and edge thickness', () => {
@@ -212,38 +244,37 @@ test('finish projects a bright layered arch portal', () => {
   assert.ok(obstacleDelta(FINISH, 'arc') >= 3)
 })
 
-test('all five section centers render dense deterministic identities', () => {
-  const centers = [80, 260, 480, 700, 900]
-  const expectedMarkers = ['#b83a2d', '#65162a', '#ff8b20', '#2263a8', '#f7e7c6']
-
-  for (let i = 0; i < centers.length; i++) {
-    const first = renderAt(centers[i], {}, { ...RED_STAGE, obstacles:[] })
-    const second = renderAt(centers[i], {}, { ...RED_STAGE, obstacles:[] })
-    assert.deepEqual(first, second, `section ${i} rendering is not deterministic`)
-    assert.ok(polygonCount(first) >= 12, `section ${i} has too few projected polygons`)
-    assert.ok(drawCount(first) >= 20, `section ${i} has too few filled shapes`)
-    assert.ok(first.some(call =>
-      (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === expectedMarkers[i]
-    ), `section ${i} identity marker is missing`)
+test('the five course sections use the same quiet decoration system', () => {
+  for (const z of [80,260,480,700,900]) {
+    const stage={...RED_STAGE,obstacles:[],visual:{...VISUAL_DEFAULTS}}
+    const quiet=renderAt(z,{speed:0},stage)
+    assert.deepEqual(quiet,renderAt(z,{speed:0},stage))
+    const decorated=renderAt(z,{speed:0}, {...stage,visual:{...stage.visual,landmarks:true}})
+    assert.ok(drawCount(decorated)>drawCount(quiet))
+    assert.equal(operationCount(quiet,'stroke'),0,'ornate scenery must not remain on the empty quiet course')
   }
 })
 
-test('section dressing combines curved machinery with structural linework', () => {
-  for (const z of [80, 260, 480, 700, 900]) {
-    const calls = renderAt(z, {}, { ...RED_STAGE, obstacles:[] })
-    assert.ok(operationCount(calls, 'arc') >= 6, `section at ${z} lacks curved machinery`)
-    assert.ok(operationCount(calls, 'stroke') >= 10, `section at ${z} lacks structural linework`)
-  }
+test('stage name is read from stage data in the HUD', () => {
+  const calls=renderAt(100,{}, {...RED_STAGE,name:'STAGE 7 PREVIEW'})
+  assert.ok(calls.some(call => call[0]==='fillText' && call[1]==='STAGE 7 PREVIEW'))
 })
 
-test('every section identity is mounted on the same steel and warning-light framework', () => {
-  for (let theme=0; theme<5; theme++) {
-    const stage = { ...RED_STAGE, sections:[[0,1000,30,0,0,theme,theme+11]], obstacles:[] }
-    const calls = renderAt(100, {}, stage)
-    assert.ok(calls.some(call => call[0] === 'stroke' && call[1] === '#9a8790'),
-      `section ${theme} is missing its steel framework`)
-    assert.ok(calls.some(call => call[0] === 'stroke' && call[1] === '#ffd34d'),
-      `section ${theme} is missing its shared warning rail`)
+test('maximum-length stage names stay in the HUD region before the timer', () => {
+  for (const [width,height] of [[195,422],[320,180]]) {
+    for (const name of ['ABCDEFGHIJKLMNOPQRSTUVWXYZ12','가나다라마바사아자차카타파하가나다라마바사아자차카타파하']) {
+      const calls=renderAt(100,{}, {...RED_STAGE,name},width,height)
+      const textCalls=calls.filter(call=>call[0]==='fillText')
+      const stageCall=textCalls.find(call=>call[5]==='left' && call[2] <= 13)
+      const timerCall=textCalls.find(call=>call[1]==='41s LEFT' && call[5]==='right')
+      assert.ok(stageCall && timerCall)
+      const stageSize=Number.parseInt(stageCall[4].match(/\d+px/)[0],10)
+      const timerSize=Number.parseInt(timerCall[4].match(/\d+px/)[0],10)
+      const measured=value=>Array.from(value).reduce((sum,character)=>
+        sum+(/[^\x00-\xff]/.test(character)?stageSize:stageSize*.6),0)
+      assert.ok(stageCall[2]+measured(stageCall[1]) < timerCall[2]-timerCall[1].length*timerSize*.6,
+        `${name} overlaps the timer at ${width}x${height}`)
+    }
   }
 })
 
@@ -276,10 +307,10 @@ test('bridge collapse timer rotates the projected plate', () => {
 
   assert.notDeepEqual(fallingRotations, stableRotations)
   assert.ok(fallingRotations.some(call => Math.abs(call[1]) > .1))
-  assert.ok(falling.some(call => (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === '#9a8790'),
+  assert.ok(falling.some(call => (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === STEEL),
     'bridge plate steel plane is missing')
   const orangeFills = calls => calls.filter(call =>
-    (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === '#ff641e').length
+    (call[0] === 'fill' || call[0] === 'fillRect') && call[1] === ORANGE).length
   assert.ok(orangeFills(falling) > orangeFills(stable), 'collapse did not expose lava below the plate')
 })
 
@@ -331,4 +362,54 @@ test('a run beyond the finish keeps the final section elevation', () => {
   render(ctx, run, camera, RED_STAGE, 320, 180)
 
   assert.deepEqual(ctx.calls[runnerAnchor(ctx.calls)], ['translate', 160, 8])
+})
+
+test('HUD shows stage deadline and bounded remaining seconds', () => {
+  const stage={...RED_STAGE,timeLimit:45,obstacles:[]}
+  for (const [time,text] of [[0,'45s LEFT'],[35,'10s LEFT'],[44.9,'1s LEFT'],[46,'0s LEFT']]) {
+    const calls=renderAt(80,{time},stage)
+    assert.ok(calls.some(c=>c[0]==='fillText'&&c[1]===text))
+  }
+  const title=renderAt(0,{mode:'title',time:0},stage)
+  assert.ok(title.some(c=>c[0]==='fillText'&&c[1]==='FINISH IN 45s'))
+})
+
+test('deadline bar drains to zero and changes color in the last ten seconds', () => {
+  const stage={...RED_STAGE,obstacles:[]}
+  const bar=time=>renderAt(80,{time},stage).findLast(c=>c[0]==='fillRect'&&c[5]===3&&(c[1]===COBALT||c[1]===ORANGE))
+  const full=bar(0),half=bar(22.5),late=bar(40),empty=bar(46)
+  assert.ok(full && half && late && empty)
+  assert.equal(half[4],full[4]/2)
+  assert.equal(late[1],ORANGE)
+  assert.equal(empty[4],0)
+})
+
+test('starting road extends below the viewport and HUD omits numeric speed', () => {
+  const calls=renderAt(0,{mode:'title',speed:0},{...RED_STAGE,obstacles:[]},320,180)
+  assert.ok(calls.some(c=>(c[0]==='lineTo'||c[0]==='moveTo')&&c[2]>180))
+  assert.ok(!renderAt(80,{speed:29}).some(c=>c[0]==='fillText'&&String(c[1]).includes('M/S')))
+})
+
+test('every new course renders its own obstacles and start instructions on narrow screens',()=>{
+  for(const stage of STAGES) {
+    const calls=renderAt(0,{mode:'title',time:0},stage,195,422)
+    assert.ok(calls.some(c=>c[0]==='fillText'&&c[1]===stage.hint))
+    for(const obstacle of stage.obstacles) {
+      const frame=renderAt(Math.max(0,obstacle[1]-20),{},stage,195,422)
+      assert.ok(frame.every(c=>c.slice(1).every(v=>typeof v!=='number'||Number.isFinite(v))))
+    }
+  }
+})
+
+test('passed obstacle opacity affects its facets and restores the drawing state',()=>{
+  const obstacle=obstacleRecipe(2,100),stage={...RED_STAGE,obstacles:[obstacle]}
+  const run={...createRun(stage),mode:'running',time:1,z:103},ctx=recordingContext(),stack=[]
+  ctx.save=()=>stack.push(ctx.globalAlpha)
+  ctx.restore=()=>{ctx.globalAlpha=stack.pop()}
+  renderer.drawObstacle(ctx,{obstacle,index:0},run,createCamera(run),stage,320,180)
+  const facets=ctx.calls.filter(c=>c[0]==='fill')
+  assert.ok(facets.length>0,'the passed obstacle must remain rendered')
+  assert.ok(facets.every(c=>c[2]>0&&c[2]<.4),'internal painting must preserve near transparency')
+  assert.equal(ctx.globalAlpha,1,'subsequent road, runner and HUD must remain opaque')
+  assert.equal(stack.length,0)
 })

@@ -1,7 +1,18 @@
-export const RUNNER_PALETTE = ['#1b1844','#fff4dd','#b9c8ea','#0e58d6','#07348f','#f04432','#ff7a1a','#ffd43b','#4ecb55','#24b8ea','#7b42d6']
-export const RUNNER_SHEET_SRC = 'data:image/png;base64,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'
+import { RUNNER_SHEET_SRC, RUNNER_FRAME_WIDTH, RUNNER_FRAME_HEIGHT } from './generated/assets.mjs'
+export { RUNNER_SHEET_SRC } from './generated/assets.mjs'
+import { RUNNER_PALETTE, INK, ROAD, YELLOW, RAINBOW } from './palette.mjs'
+export { RUNNER_PALETTE } from './palette.mjs'
 const RUNNER_SHEET = typeof Image === 'undefined' ? null : new Image()
 if (RUNNER_SHEET) RUNNER_SHEET.src = RUNNER_SHEET_SRC
+// Development editor refresh; tree-shaken from the submission entry point.
+export function setRunnerSheetSource(source) {
+  if (!RUNNER_SHEET) return Promise.resolve()
+  return new Promise((resolve,reject)=>{
+    RUNNER_SHEET.onload=()=>resolve()
+    RUNNER_SHEET.onerror=()=>reject(new Error('Runner sheet failed to load.'))
+    RUNNER_SHEET.src=source
+  })
+}
 const A = Math.PI / 14
 
 export const RUNNER_POSES = [
@@ -128,7 +139,7 @@ export function runnerScale(width, height) {
   return Math.max(.8, Math.min(1.25, Math.min(width / 1280, height / 720)))
 }
 
-export function drawGear(ctx, x, y, radius, phase, color, core = '#31051b') {
+export function drawGear(ctx, x, y, radius, phase, color, core = INK) {
   const tooth = Math.max(1, radius * .28)
   ctx.save()
   ctx.translate(Math.round(x), Math.round(y))
@@ -148,11 +159,11 @@ export function drawGear(ctx, x, y, radius, phase, color, core = '#31051b') {
   ctx.restore()
 }
 
-export function drawLamp(ctx, x, y, size, lit, color = '#ffd34d') {
+export function drawLamp(ctx, x, y, size, lit, color = YELLOW) {
   const s = Math.max(1, size)
-  ctx.fillStyle = '#31051b'
+  ctx.fillStyle = INK
   ctx.fillRect(Math.round(x - s), Math.round(y - s * 1.4), Math.round(s * 2), Math.round(s * 2.2))
-  ctx.fillStyle = lit ? color : '#790b24'
+  ctx.fillStyle = lit ? color : ROAD
   ctx.fillRect(Math.round(x - s * .55), Math.round(y - s), Math.max(1, Math.round(s * 1.1)), Math.max(1, Math.round(s)))
   if (lit) {
     ctx.globalAlpha = .3
@@ -163,7 +174,7 @@ export function drawLamp(ctx, x, y, size, lit, color = '#ffd34d') {
   }
 }
 
-export function drawSpark(ctx, x, y, size, color = '#ffd34d') {
+export function drawSpark(ctx, x, y, size, color = YELLOW) {
   ctx.strokeStyle = color
   ctx.lineWidth = Math.max(1, size * .18)
   ctx.beginPath()
@@ -189,7 +200,7 @@ export function drawRunner(ctx, run, x, y, scale) {
     ctx.translate(0, Math.round(bob))
     ctx.rotate(lean * A * .35)
     if (runnerMirror(run)) ctx.scale(-1, 1)
-    ctx.drawImage(RUNNER_SHEET, runnerFrame(run) * 32, 0, 32, 56, -17, -60, 34, 60)
+    ctx.drawImage(RUNNER_SHEET, runnerFrame(run) * RUNNER_FRAME_WIDTH, 0, RUNNER_FRAME_WIDTH, RUNNER_FRAME_HEIGHT, -17, -60, 34, 60)
     ctx.restore()
     return
   }
@@ -214,5 +225,26 @@ export function drawRunner(ctx, run, x, y, scale) {
   at(ctx, 0, -42, A/2, HORN)
 
   paint(ctx, TORSO_ACCENTS)
+  ctx.restore()
+}
+
+// Submission renderer: the historical articulated model remains available to
+// authoring tools, but is not bundled alongside the current Piskel atlas.
+export function drawRunnerSprite(ctx,run,x,y,scale) {
+  const pose=runnerPose(run),lean=[0,-1,-1,0,1,1,-1,0,3,0][pose],bob=[0,-1,0,1,0,-1,-2,-4,2,4][pose]
+  ctx.imageSmoothingEnabled=false
+  ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale)
+  if(run.landing>0)ctx.scale(1+.12*run.landing,1-.12*run.landing)
+  ctx.translate(0,bob);ctx.rotate(lean*A*.35)
+  if(runnerMirror(run))ctx.scale(-1,1)
+  if(RUNNER_SHEET?.complete&&RUNNER_SHEET.naturalWidth)
+    ctx.drawImage(RUNNER_SHEET,runnerFrame(run)*RUNNER_FRAME_WIDTH,0,RUNNER_FRAME_WIDTH,RUNNER_FRAME_HEIGHT,-17,-60,34,60)
+  else {
+    // Visible, compact unicorn while decoding or if the embedded image fails.
+    for(const [x,y,w,h,c] of [[-10,-39,20,30,1],[-11,-51,22,20,1],[-9,-59,5,10,1],[4,-59,5,10,1],[-2,-60,4,12,7],[-9,-10,7,10,3],[2,-10,7,10,3]]) {
+      ctx.fillStyle=RUNNER_PALETTE[c];ctx.fillRect(x,y,w,h)
+    }
+    for(let i=0;i<7;i++){ctx.fillStyle=RAINBOW[i];ctx.fillRect(-3,-49+i*4,6,4)}
+  }
   ctx.restore()
 }

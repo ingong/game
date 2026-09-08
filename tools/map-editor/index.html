@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crimson Furnace · 맵 에셋 작업실</title><link rel="stylesheet" href="/tools/map-editor/style.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="/tools/map-editor/index.html">CF<span>CRIMSON FURNACE<small>맵 에셋 작업실</small></span></a>
+<div class="top-actions"><a class="plain-link" href="./obstacles.html">장애물 도감 · 20종 ↗</a><span id="save-state">불러오는 중</span><button id="reload">디스크에서 불러오기</button><button id="save" class="primary" disabled>프로젝트 저장</button><button id="build" disabled>제출 ZIP 빌드</button></div></header>
+<div class="workspace">
+<aside class="stage-sidebar"><p class="eyebrow">STAGES / 01—07</p><h1>하나의 에셋,<br>일곱 개의 여정.</h1><nav id="stages" aria-label="스테이지 선택"></nav>
+<div class="sidebar-note"><span class="dot"></span>7개 플레이 가능 · 서로 다른 행동 목표<p>20종의 장애물을 조합해 스테이지마다 다른 경로와 타이밍을 만듭니다.</p></div>
+<a class="plain-link" href="/dist/index.html" target="_blank" rel="noopener">마지막 빌드 게임 ↗</a></aside>
+<main>
+<div class="section-header"><div><p class="eyebrow">MAP PREVIEW</p><h2 id="stage-heading">스테이지 1</h2></div><span class="badge" id="stage-status">플레이 가능</span></div>
+<p id="draft-note" class="notice" hidden>스테이지별 장애물, 코스 길이와 제한 시간을 확인하세요.</p>
+<section class="preview-shell" aria-label="맵 미리보기"><canvas id="preview" width="480" height="270" aria-label="실제 렌더러로 그리는 맵 미리보기"></canvas><div class="preview-caption"><span>LIVE · 실제 게임 에셋</span><span id="position-label">80 / 1000 m</span></div></section>
+<div class="preview-controls"><label class="position">코스 위치<input id="position" type="range" min="5" max="995" value="80" step="1"></label><label><input id="travel" type="checkbox">경로 따라 이동</label><label><input id="animate" type="checkbox" checked>동작 재생</label></div>
+<div class="section-header library-header"><div><p class="eyebrow">ASSET LIBRARY</p><h2>맵에 쓰이는 에셋 <span id="asset-count"></span></h2></div><label class="search"><span class="sr-only">에셋 검색</span><input id="search" type="search" placeholder="이름으로 찾기"></label></div>
+<div id="filters" class="filters" aria-label="에셋 분류"></div><div id="assets" class="asset-grid"></div><p id="empty" hidden>일치하는 에셋이 없습니다.</p>
+</main>
+<aside class="inspector"><p class="eyebrow">STAGE SETTINGS</p><label class="name-label">스테이지 이름<input id="stage-name" maxlength="28"></label>
+<div class="inspector-title"><span id="asset-kind">배경</span><h2 id="asset-name">하늘</h2><p id="asset-note"></p></div>
+<div id="controls"></div><div id="placements"></div>
+<section class="piskel-panel"><p class="eyebrow">PISKEL SOURCE</p><h3>캐릭터 원본 편집</h3><p>원본을 Piskel에서 열어 편집하고, 저장한 .piskel 파일을 가져오세요.</p><div class="stack"><button id="download-piskel">.piskel 원본 다운로드</button><a class="button" href="https://www.piskelapp.com/p/create/sprite/" target="_blank" rel="noopener">Piskel 열기 ↗</a><button id="import-piskel">편집한 .piskel 가져와 적용</button><input id="piskel-file" type="file" accept=".piskel,application/json" hidden></div><small>32 × 56 px · 5프레임<br>게임에 넣는 작은 이미지는 자동으로 변환합니다.</small></section>
+<section class="budget"><p class="eyebrow">JS13K BUDGET</p><strong id="zip-size">—</strong><div class="meter"><span id="zip-meter"></span></div><p id="zip-note">마지막 제출 ZIP 크기</p><small id="runner-size"></small></section>
+<div class="backup-actions"><button id="export-settings">설정 JSON 내보내기</button><button id="reset-stage">선택 스테이지 배경 초기화</button></div>
+</aside>
+</div><div id="message" role="status" aria-live="polite"></div>
+<script type="module" src="/tools/map-editor/editor.mjs"></script></body></html>

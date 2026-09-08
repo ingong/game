@@ -3,7 +3,8 @@ import { createInput } from './input.mjs'
 import { logicalViewport } from './math.mjs'
 import { render, stageElevation } from './render.mjs'
 import { createRun, restartRun, stepRun } from './sim.mjs'
-import { RED_STAGE } from './stage.mjs'
+import { STAGES } from './stage.mjs'
+import {stageAfterRun} from './progression.mjs'
 
 const STEP = 1 / 120
 const MAX_ACCUMULATOR = .1
@@ -13,8 +14,9 @@ export function startGame(canvas, target = window) {
   if (!ctx) throw new Error('Canvas 2D context unavailable')
 
   const input = createInput(target)
-  let run = createRun(RED_STAGE)
-  let camera = createCamera(run, stageElevation(RED_STAGE, run.z))
+  let stageIndex=0,stage=STAGES[0]
+  let run = createRun(stage)
+  let camera = createCamera(run, stageElevation(stage, run.z))
   let accumulator = 0
   let previous = null
   let frameId = 0
@@ -36,16 +38,18 @@ export function startGame(canvas, target = window) {
     while (accumulator >= STEP) {
       const controls = input.read()
       if (controls.jumpPressed && (run.mode === 'title' || run.mode === 'success' || run.mode === 'failure')) {
-        run = restartRun(RED_STAGE)
-        camera = createCamera(run, stageElevation(RED_STAGE, run.z))
+        stageIndex=stageAfterRun(stageIndex,run.mode)
+        stage=STAGES[stageIndex]
+        run = restartRun(stage)
+        camera = createCamera(run, stageElevation(stage, run.z))
       } else {
-        run = stepRun(run, controls, STEP, RED_STAGE)
-        camera = stepCamera(camera, run, STEP, stageElevation(RED_STAGE, run.z))
+        run = stepRun(run, controls, STEP, stage)
+        camera = stepCamera(camera, run, STEP, stageElevation(stage, run.z))
       }
       accumulator -= STEP
     }
 
-    render(ctx, run, camera, RED_STAGE, canvas.width, canvas.height)
+    render(ctx, run, camera, stage, canvas.width, canvas.height)
     frameId = target.requestAnimationFrame(frame)
   }
 

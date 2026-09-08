@@ -1,12 +1,13 @@
+import {REFERENCE_STAGE as RED_STAGE} from './fixtures/reference-course.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  RED_STAGE, FIRE, GAP, BRIDGE, FINISH, HURDLE, PISTON,
+  FIRE, GAP, BRIDGE, FINISH, HURDLE, PISTON,
   validateStage, sectionAt, roadAt, obstacleBounds, surfaceAt,
   contactAt
 } from '../src/stage.mjs'
 
-test('red stage contains five contiguous sets and a finish at 1000', () => {
+test('historical reference course contains five contiguous sets and a finish at 1000', () => {
   assert.deepEqual(validateStage(RED_STAGE), [])
   assert.equal(RED_STAGE.sections.length, 5)
   assert.deepEqual(RED_STAGE.sections.map(s => [s[0], s[1]]),

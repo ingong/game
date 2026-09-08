@@ -6,6 +6,7 @@ into `src/` or `dist/`, and the submission build must not include this folder.
 
 ## Muscle Runner Reference
 
+- Usage/license text rechecked on the author's page on 2026-09-07; the restriction below remains present.
 - Source: https://pixelspriteshop.itch.io/42pixelcharacter
 - Local file: `muscle-runner-reference.png`
 - Author: Roberto Ortiz / Pixel Sprite Shop

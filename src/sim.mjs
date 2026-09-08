@@ -1,5 +1,5 @@
 import { clamp } from './math.mjs'
-import { contactAt, obstacleBounds, roadAt, surfaceAt } from './stage.mjs'
+import { contactAt, obstacleBounds, roadAt, surfaceAt, FIRE } from './stage.mjs'
 
 const makeCollapse = () => ({ index:-1, timer:0 })
 
@@ -13,7 +13,7 @@ export const MOTION={
 }
 
 export const createRun = stage => ({
-  mode:'title',time:0,countdown:0,x:0,y:0,z:0,vx:0,vy:0,speed:0,
+  mode:'title',shock:0,spring:0,springId:0,time:0,countdown:0,x:0,y:0,z:0,vx:0,vy:0,speed:0,
   grounded:true,jumps:0,anim:0,stumble:0,invulnerable:0,landing:0,
   landingId:0,stumbleId:0,hitIndex:-1,
   failReason:'',
@@ -36,6 +36,7 @@ export function stepRun(run, input, dt, stage) {
 
   if (run.mode !== 'running') return next
 
+  if(run.shock>0)input={...input,up:false,down:false,left:false,right:false,jumpPressed:false}
   const drive=input.down?-MOTION.brake:input.up?MOTION.acceleration:-MOTION.drag
   next.speed=clamp(run.speed+drive*dt,0,MOTION.maxSpeed)
   const steer=(input.right?1:0)-(input.left?1:0)
@@ -76,10 +77,12 @@ export function stepRun(run, input, dt, stage) {
 
   next.time = run.time + dt
   next.anim = run.anim + next.speed * dt * .055
+  next.shock=Math.max(0,(run.shock||0)-dt)
+  next.spring=Math.max(0,(run.spring||0)-dt)
   next.stumble=Math.max(0,run.stumble-dt)
   next.invulnerable=Math.max(0,run.invulnerable-dt)
 
-  if(next.hitIndex>=0 && !contains(obstacleBounds(stage.obstacles[next.hitIndex],next.time),next)) {
+  if(next.hitIndex>=0 && !contains(obstacleBounds(stage.obstacles[next.hitIndex],next.time,stage),next)) {
     next.hitIndex=-1
   }
 
@@ -92,12 +95,18 @@ export function stepRun(run, input, dt, stage) {
     next.collapse=makeCollapse()
   }
 
+  if(contact?.kind==='spring') {
+    next.vy=stage.obstacles[contact.index][8]===19?28:stage.obstacles[contact.index][8]===20?34:30;next.y=.01;next.grounded=false;next.jumps=1
+    next.speed=MOTION.maxSpeed;next.spring=.6;next.springId=(run.springId||0)+1
+  }
+
   if(contact?.kind==='finish' || next.z>=stage.length) {
     next.mode='success'
   } else if(contact?.kind==='stumble' && next.invulnerable===0 && next.hitIndex!==contact.index) {
     next.stumble=.45
     next.invulnerable=.75
     next.speed*=.45
+    if(stage.obstacles[contact.index][0]===FIRE){next.shock=.65;next.stumble=.65;next.speed=0}
     next.vx*=-.35
     next.stumbleId++
     next.hitIndex=contact.index

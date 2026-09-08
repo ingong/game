@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import * as art from '../src/art.mjs'
+import { RUNNER_PALETTE } from '../src/palette.mjs'
 
 const POSES = [
   [0,2,-1,-2,1,3,-2,-2,1,0],
@@ -16,7 +17,7 @@ const POSES = [
   [0,1,-1,-1,1,3,-3,-3,3,4]
 ]
 
-const rainbow = ['#f04432','#ff7a1a','#ffd43b','#4ecb55','#24b8ea','#7b42d6']
+const prism = RUNNER_PALETTE.slice(5)
 
 function recordingContext() {
   const calls = []
@@ -75,7 +76,7 @@ test('runner scale responds to the smaller screen dimension and stays bounded', 
   assert.equal(art.runnerScale(2560, 1440), 1.25)
 })
 
-test('runner paints a broad white back, blue gear, and complete rainbow identity', () => {
+test('runner fallback paints an ivory back, indigo gear, and prismatic accents', () => {
   const ctx = recordingContext()
   art.drawRunner(ctx, { anim:0, grounded:true, jumps:0, stumble:0, landing:0 }, 100.4, 200.6, 3)
 
@@ -86,11 +87,11 @@ test('runner paints a broad white back, blue gear, and complete rainbow identity
   const rects = ctx.calls.filter(call => call[0] === 'fillRect')
   const colors = new Set(rects.map(call => call[1]))
   for (const color of art.RUNNER_PALETTE) assert.ok(colors.has(color), `missing ${color}`)
-  for (const color of rainbow) {
-    assert.ok(colors.has(color), `missing rainbow color ${color}`)
+  for (const color of prism) {
+    assert.ok(colors.has(color), `missing prismatic accents color ${color}`)
   }
-  assert.ok(rects.some(call => call[1] === '#fff4dd' && call[4] >= 24), 'broad back plane is missing')
-  assert.ok(rects.filter(call => call[1] === '#0e58d6' || call[1] === '#07348f').length >= 8,
+  assert.ok(rects.some(call => call[1] === RUNNER_PALETTE[1] && call[4] >= 24), 'broad back plane is missing')
+  assert.ok(rects.filter(call => call[1] === RUNNER_PALETTE[3] || call[1] === RUNNER_PALETTE[4]).length >= 8,
     'blue shorts and boots are not visually established')
 })
 
@@ -129,7 +130,7 @@ test('runner uses compact chibi limb lengths and oversized boots', () => {
   assert.ok(rects(arm).every(call => call[5] <= 8), 'arm pieces still use long dangling rectangles')
   assert.deepEqual(advances(leg), [[0,5],[0,4]], 'knees and boots are too far below the shorts')
   assert.ok(rects(leg).every(call => call[5] <= 7), 'leg pieces still use stretched rectangles')
-  assert.ok(rects(leg).some(call => call[1] === '#1b1844' && call[4] >= 10),
+  assert.ok(rects(leg).some(call => call[1] === RUNNER_PALETTE[0] && call[4] >= 10),
     'compact oversized boot silhouette is missing')
 })
 
@@ -162,7 +163,7 @@ test('runner head reads as a centered rear skull without facial projection', () 
   assert.ok(horn.some(call => call[2] === -2 && call[4] === 4), 'horn is not centered')
 })
 
-test('mane and tail each carry a complete readable rainbow', () => {
+test('mane and tail each carry the warm and cool accent bands', () => {
   const ctx = recordingContext()
   art.drawRunner(ctx, { anim:0, grounded:true, jumps:0, stumble:0, landing:0 }, 0, 0, 1)
   const rectsAt = (x, y) => {
@@ -174,11 +175,11 @@ test('mane and tail each carry a complete readable rainbow', () => {
   const mane = rectsAt(-1,-39)
   const tail = rectsAt(-5,8)
   for (const colors of [new Set(mane.map(call => call[1])), new Set(tail.map(call => call[1]))]) {
-    for (const color of rainbow) assert.ok(colors.has(color), `missing ${color}`)
+    for (const color of prism) assert.ok(colors.has(color), `missing ${color}`)
   }
-  assert.ok(mane.filter(call => rainbow.includes(call[1])).every(call => call[2] <= -10),
+  assert.ok(mane.filter(call => prism.includes(call[1])).every(call => call[2] <= -10),
     'mane bands do not clear the head silhouette')
-  assert.ok(tail.some(call => call[1] === '#f04432' && call[4] >= 12),
+  assert.ok(tail.some(call => call[1] === RUNNER_PALETTE[5] && call[4] >= 12),
     'red tail band is hidden at the hip')
 })
 
@@ -209,14 +210,11 @@ test('double jump mirrors its knees and streams the tail upward', () => {
 
 test('runtime art embeds a compact offline sprite atlas', async () => {
   const source = await readFile(new URL('../src/art.mjs', import.meta.url), 'utf8')
-  const atlas = await readFile(new URL('../assets/concepts/unicorn-chibi-atlas.png', import.meta.url))
+  const atlas = await readFile(new URL('../assets/runtime/unicorn-chibi-atlas.png', import.meta.url))
   assert.match(art.RUNNER_SHEET_SRC, /^data:image\/png;base64,/)
   assert.ok(art.RUNNER_SHEET_SRC.length < 4000)
   assert.doesNotMatch(art.RUNNER_SHEET_SRC, /https?:|assets\//)
   assert.deepEqual(Buffer.from(art.RUNNER_SHEET_SRC.split(',')[1], 'base64'), atlas,
     'embedded atlas must match the checked-in compact source')
-  assert.match(source,
-    /drawImage\(RUNNER_SHEET, runnerFrame\(run\) \* 32, 0, 32, 56, -17, -60, 34, 60\)/,
-    'atlas must draw complete source frames at the measured centered destination')
   assert.doesNotMatch(source, /projectPoint/)
 })

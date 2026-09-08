@@ -4,6 +4,9 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as esbuild from 'esbuild'
 import { minify } from 'terser'
+import { generateAssets } from './assets.mjs'
+import { exportRunner } from './runner-export.mjs'
+import { generateMapSettings } from './map-settings.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
@@ -20,13 +23,22 @@ export function assertStandaloneHtml(html) {
 }
 
 export async function build({ maxZipBytes = MAX_ZIP_BYTES } = {}) {
+  generateMapSettings({ check:true })
+  exportRunner({ check:true })
+  generateAssets({ check:true })
   const bundle = await esbuild.build({
     entryPoints: [resolve(root, 'src/main.mjs')],
     bundle: true,
     format: 'iife',
     platform: 'browser',
-    write: false
+    write: false,
+    metafile: true
   })
+  for (const input of Object.keys(bundle.metafile.inputs)) {
+    if (resolve(input).startsWith(resolve(root, 'assets') + '/')) {
+      throw new Error(`Source/reference asset imported into submission: ${input}`)
+    }
+  }
   const result = await minify(bundle.outputFiles[0].text, {
     module: false,
     toplevel: true,

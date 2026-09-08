@@ -1,44 +1,35 @@
+import { obstacleRecipe } from './obstacles.mjs'
+import { MAP_SETTINGS, STAGE_SETTINGS } from './generated/map-settings.mjs'
+
 export const RED_PALETTE = {
   sky:'#a51f1f', road:'#531919', lava:'#ef4b16', fire:'#ffc22f', bridge:'#8b3430'
 }
 
-export const FIRE=0,GAP=1,BRIDGE=2,FINISH=3,HURDLE=4,PISTON=5
+export const FIRE=0,GAP=1,BRIDGE=2,FINISH=3,HURDLE=4,PISTON=5,SPRING=6
 
-export const RED_STAGE={
-  name:'RED 1',timeLimit:45,length:1000,
-  sections:[
-    [0,160,36,0,0,0,11],
-    [160,360,28,0,1,1,23],
-    [360,600,30,1,4,2,37],
-    [600,800,26,4,2,3,41],
-    [800,1000,22,2,6,4,53]
-  ],
-  obstacles:[
-    [HURDLE,92,0,12,3,4,0,0],
-    [FIRE,188,-8,9,4,9,2.4,0],
-    [FIRE,236,8,9,4,9,2.4,.8],
-    [HURDLE,282,0,15,3,5,0,0],
-    [FIRE,328,0,13,4,10,2.8,1.4],
-    [GAP,408,0,60,11,0,0,0],
-    [HURDLE,454,-7,10,3,4,0,0],
-    [GAP,488,0,60,14,0,0,0],
-    [HURDLE,536,7,10,3,5,0,0],
-    [GAP,570,0,60,18,0,0,0],
-    [PISTON,640,-12,12,5,6,2.8,0],
-    [PISTON,690,12,12,5,6,2.8,.9],
-    [PISTON,742,0,16,6,8,3.2,1.6],
-    [HURDLE,782,0,12,3,5,0,0],
-    [BRIDGE,830,0,22,17,0,.42,0],
-    [BRIDGE,852,0,22,17,0,.38,0],
-    [BRIDGE,874,0,22,17,0,.34,0],
-    [BRIDGE,896,0,22,17,0,.30,0],
-    [BRIDGE,918,0,22,17,0,.28,0],
-    [BRIDGE,940,0,22,17,0,.25,0],
-    [FINISH,1000,0,28,4,18,0,0]
-  ]
-}
+const lengths=[600,700,650,750,800,600,1000]
+const limits=[26,29,30,31,33,26,40]
+const hints=['JUMP / DODGE','FIND THE OPEN LANE','READ THE CHARGE','CHAIN YOUR JUMPS','WATCH THE MOVEMENT','CHOOSE YOUR LANDING','FINAL MIX']
+// [catalog id, distance, lane]. Different sequences, not a recolored template.
+const layouts=[
+  [[1,100,-6],[9,180,7],[3,250,-6],[13,350],[5,460,-8],[4,540,8]],
+  [[2,100,8],[13,205],[3,280,-8],[9,330,7],[7,385,7],[2,465,-8],[1,510,8],[15,555,-7],[10,635,5]],
+  [[5,100,-8],[4,155,8],[6,195],[1,265,-7],[8,345],[7,445,-6],[12,480,-7],[13,520],[11,585,6]],
+  [[13,120],[1,180,-8],[14,240],[17,315],[15,390,7],[16,480],[16,540],[18,605],[14,665]],
+  [[9,120,-5],[10,215,5],[13,290],[17,330],[11,380,-4],[5,470,8],[12,570,5],[15,655,-7],[4,710,8],[3,740]],
+  [[19,120],[16,140],[20,180],[16,200],[1,255,-8],[19,300],[16,320],[20,360],[16,380],[5,435,8],[19,480],[16,500],[20,540],[16,560]],
+  [[2,92,7],[1,140,-7],[6,188],[13,232],[3,270,-7],[12,305,-6],[7,340,6],[4,380,8],[14,415],[10,490,-5],[18,565],[17,600],[11,640,4],[8,720],[5,770,-8],[20,820],[16,840],[19,900],[16,920],[15,965,8]]
+]
+export const STAGES=STAGE_SETTINGS.map((settings,index)=>{
+  const length=lengths[index]
+  return {...settings,id:index+1,length,timeLimit:limits[index],hint:hints[index],
+    sections:[[0,length*.3,32,0,0,index,11],[length*.3,length*.7,30,0,2,index,23],[length*.7,length,28,2,3,index,37]],
+    obstacles:[...layouts[index].map(([id,z,x])=>obstacleRecipe(id,z,x)),[FINISH,length,0,28,4,18,0,0]]}
+})
 
-const types = [FIRE, GAP, BRIDGE, FINISH, HURDLE, PISTON]
+export const RED_STAGE=STAGES[0]
+
+const types = [FIRE, GAP, BRIDGE, FINISH, HURDLE, PISTON, SPRING]
 const isLegacy = obstacle => obstacle.length < 8
 
 const legacyBounds = obstacle => {
@@ -75,12 +66,13 @@ export function validateStage(stage) {
   else {
     let previousZ = -Infinity
     for (const obstacle of stage.obstacles) {
-      if (!Array.isArray(obstacle) || obstacle.length !== 8 || !obstacle.every(Number.isFinite) ||
+      if (!Array.isArray(obstacle) || ![8,9].includes(obstacle.length) || !obstacle.every(Number.isFinite) ||
         !(obstacle[3] > 0) || obstacle[4] < 0 || obstacle[5] < 0 || obstacle[6] < 0) {
         errors.push('invalid obstacle tuple')
         continue
       }
       const [type, z, , , depth] = obstacle
+      if (obstacle.length===9 && (!Number.isInteger(obstacle[8]) || obstacle[8]<1 || obstacle[8]>20)) errors.push('unknown obstacle recipe')
       if (!types.includes(type)) errors.push('unknown obstacle type')
       if (z < previousZ) errors.push('obstacle positions are not sorted')
       if (type !== FINISH && (z - depth / 2 < 0 || z + depth / 2 > stage.length)) {
@@ -113,18 +105,23 @@ export function roadAt(stage, z) {
   return { width, elevation:y0 + (y1 - y0) * progress, theme, seed }
 }
 
-export function obstacleBounds(obstacle, time = 0) {
+export function obstacleBounds(obstacle, time = 0, stage = RED_STAGE) {
   if (isLegacy(obstacle)) return legacyBounds(obstacle)
   const [type, z, x, width, depth, height, period, phase] = obstacle
   const cycle = period > 0 ? ((time + phase) / period % 1 + 1) % 1 : 0
-  const active = type === FIRE ? cycle >= .32 && cycle <= .78 : true
-  const roadWidth = roadAt(RED_STAGE, z)?.width ?? width
-  const pistonX = x + (type === PISTON ? Math.sin(cycle * Math.PI * 2) * roadWidth * .3 : 0)
-  return { x:pistonX, z, width, depth, height, active }
+  const id=obstacle[8]||0
+  const pulse=id===6?(cycle*2)%1:cycle
+  const active = type === FIRE ? pulse >= (id===8?.18:.32) && pulse <= (id===8?.86:.78) : true
+  const roadWidth = roadAt(stage, z)?.width ?? width
+  const wave=id===10?1-4*Math.abs(cycle-.5):Math.sin(cycle*Math.PI*2)
+  const pistonX=x+((type===PISTON&&id!==12)||id===7?wave*roadWidth*.3:0)
+  return { x:pistonX,z,width:id===11?width*(.65+.35*Math.abs(wave)):width,depth,
+    height:id===4?height*Math.max(0,(Math.abs(wave)-.2)/.8):height,
+    bottom:id===12?height*(.5+.5*wave):0,active }
 }
 
 const obstacleAt = (stage, x, z, type, time = 0) =>
-  stage.obstacles?.findIndex(obstacle => obstacle[0] === type && spans(obstacleBounds(obstacle, time), x, z)) ?? -1
+  stage.obstacles?.findIndex(obstacle => obstacle[0] === type && spans(obstacleBounds(obstacle, time, stage), x, z)) ?? -1
 
 const unsupportedIndexAt = (stage, x, z, collapse) => {
   const gapIndex = obstacleAt(stage, x, z, GAP)
@@ -148,9 +145,10 @@ export function contactAt(stage, run) {
   const time = run.time ?? 0
   const solidIndex = stage.obstacles?.findIndex(obstacle => {
     const type = obstacle[0]
-    const bounds = obstacleBounds(obstacle, time)
+    const bounds = obstacleBounds(obstacle, time, stage)
     return [FIRE, HURDLE, PISTON].includes(type) && bounds.active &&
-      spans(bounds, run.x, run.z) && run.y < bounds.height
+      spans(bounds, run.x, run.z) && run.y+2.5>(bounds.bottom||0) &&
+      run.y < (bounds.bottom||0)+bounds.height*(obstacle[8]===3?Math.min(3,1+Math.floor((run.x-bounds.x+bounds.width/2)/bounds.width*3))/3:1)
   }) ?? -1
   if (solidIndex >= 0) return { kind:'stumble', index:solidIndex }
 
@@ -161,6 +159,9 @@ export function contactAt(stage, run) {
   if (run.y <= 0 && (unsupportedIndex >= 0 || surfaceAt(stage, run.x, run.z, run.collapse) === null)) {
     return { kind:'lava', index:unsupportedIndex }
   }
+
+  const springIndex=obstacleAt(stage,run.x,run.z,SPRING)
+  if(run.y<=0 && springIndex>=0)return {kind:'spring',index:springIndex}
 
   const bridgeIndex = obstacleAt(stage, run.x, run.z, BRIDGE)
   if (run.y <= 0 && bridgeIndex >= 0) return { kind:'bridge', index:bridgeIndex }

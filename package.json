@@ -3,9 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "assets:generate": "node tools/map-settings.mjs && node tools/runner-export.mjs && node tools/assets.mjs generate",
+    "assets:check": "node tools/map-settings.mjs --check && node tools/runner-export.mjs --check && node tools/assets.mjs check",
+    "assets:audit": "node tools/assets.mjs audit",
+    "assets:catalog": "node tools/assets.mjs catalog",
+    "assets:serve": "npm run assets:catalog && python3 -m http.server 4174 --bind 127.0.0.1 -d .",
+    "pretest": "npm run assets:check",
     "test": "node --test",
+    "predev": "npm run assets:generate",
     "dev": "python3 -m http.server 4173 -d src",
-    "build": "node tools/build.mjs"
+    "build": "node tools/build.mjs",
+    "maps:serve": "npm run assets:generate && node tools/map-editor-server.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

@@ -1,0 +1,446 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "red-stage-concept",
+      "title": "Red stage concept",
+      "kind": "image",
+      "role": "concept",
+      "path": "assets/concepts/red-stage-concept.png",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project; individual author and creation tool not recorded",
+        "evidence": "README.md; git commits 268819f and 8c64e96"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      },
+      "width": 1672,
+      "height": 941
+    },
+    {
+      "id": "unicorn-chibi-sprite-sheet",
+      "title": "Chibi runner source sheet",
+      "kind": "image",
+      "role": "concept",
+      "path": "assets/concepts/unicorn-chibi-sprite-sheet.png",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project; individual author and creation tool not recorded",
+        "evidence": "README.md; git commits 268819f and 8c64e96"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      },
+      "width": 1983,
+      "height": 793,
+      "review": [
+        "Individual creator, generation tool, and creation parameters are not recorded."
+      ]
+    },
+    {
+      "id": "unicorn-runner-sprite-concept",
+      "title": "Original runner concept",
+      "kind": "image",
+      "role": "concept",
+      "path": "assets/concepts/unicorn-runner-sprite-concept.png",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project; individual author and creation tool not recorded",
+        "evidence": "README.md; git commits 268819f and 8c64e96"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      },
+      "width": 1983,
+      "height": 793
+    },
+    {
+      "id": "sources",
+      "title": "Reference provenance records",
+      "kind": "document",
+      "role": "reference",
+      "path": "assets/references/itch/SOURCES.md",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project; individual author and creation tool not recorded",
+        "evidence": "README.md; git commits 268819f and 8c64e96"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      }
+    },
+    {
+      "id": "industrial-punk-cc0",
+      "title": "Industrial Punk source archive",
+      "kind": "archive",
+      "role": "reference",
+      "path": "assets/references/itch/industrial-punk-cc0.zip",
+      "source": {
+        "kind": "external",
+        "author": "GoncaloMCOliveira",
+        "url": "https://goncalomcoliveira.itch.io/industrial-punk",
+        "evidence": "assets/references/itch/SOURCES.md (recorded 2026-09-02; not reverified)"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      }
+    },
+    {
+      "id": "industrial-punk-mockup",
+      "title": "Industrial Punk mockup",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/industrial-punk/IndustrialPunkMockup.png",
+      "source": {
+        "kind": "external",
+        "author": "GoncaloMCOliveira",
+        "url": "https://goncalomcoliveira.itch.io/industrial-punk",
+        "evidence": "assets/references/itch/SOURCES.md (recorded 2026-09-02; not reverified)"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "width": 1920,
+      "height": 1080,
+      "derivedFrom": [
+        "industrial-punk-cc0"
+      ]
+    },
+    {
+      "id": "industrial-punk-tileset",
+      "title": "Industrial Punk tileset",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/industrial-punk/IndustrialPunk_Tileset.png",
+      "source": {
+        "kind": "external",
+        "author": "GoncaloMCOliveira",
+        "url": "https://goncalomcoliveira.itch.io/industrial-punk",
+        "evidence": "assets/references/itch/SOURCES.md (recorded 2026-09-02; not reverified)"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "width": 480,
+      "height": 256,
+      "derivedFrom": [
+        "industrial-punk-cc0"
+      ]
+    },
+    {
+      "id": "lucifer-lava-dungeon-cc0",
+      "title": "Lava Dungeon source archive",
+      "kind": "archive",
+      "role": "reference",
+      "path": "assets/references/itch/lucifer-lava-dungeon-cc0.zip",
+      "source": {
+        "kind": "external",
+        "author": "Baldur; distributed by Foozle",
+        "url": "https://foozlecc.itch.io/lucifer-lava-dungeon-tileset",
+        "evidence": "assets/references/itch/SOURCES.md and assets/references/itch/lucifer-lava-dungeon/Readme.txt"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      }
+    },
+    {
+      "id": "lava",
+      "title": "Lava animation strip",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/lucifer-lava-dungeon/Lava.png",
+      "source": {
+        "kind": "external",
+        "author": "Baldur; distributed by Foozle",
+        "url": "https://foozlecc.itch.io/lucifer-lava-dungeon-tileset",
+        "evidence": "assets/references/itch/SOURCES.md and assets/references/itch/lucifer-lava-dungeon/Readme.txt"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "width": 320,
+      "height": 32,
+      "derivedFrom": [
+        "lucifer-lava-dungeon-cc0"
+      ]
+    },
+    {
+      "id": "lava-dungeon-tileset",
+      "title": "Lava Dungeon tileset",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/lucifer-lava-dungeon/LavaDungeonTileset.png",
+      "source": {
+        "kind": "external",
+        "author": "Baldur; distributed by Foozle",
+        "url": "https://foozlecc.itch.io/lucifer-lava-dungeon-tileset",
+        "evidence": "assets/references/itch/SOURCES.md and assets/references/itch/lucifer-lava-dungeon/Readme.txt"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "width": 576,
+      "height": 512,
+      "derivedFrom": [
+        "lucifer-lava-dungeon-cc0"
+      ]
+    },
+    {
+      "id": "lava-mockup",
+      "title": "Lava Dungeon mockup",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/lucifer-lava-dungeon/LavaMockup.png",
+      "source": {
+        "kind": "external",
+        "author": "Baldur; distributed by Foozle",
+        "url": "https://foozlecc.itch.io/lucifer-lava-dungeon-tileset",
+        "evidence": "assets/references/itch/SOURCES.md and assets/references/itch/lucifer-lava-dungeon/Readme.txt"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "width": 960,
+      "height": 540,
+      "derivedFrom": [
+        "lucifer-lava-dungeon-cc0"
+      ]
+    },
+    {
+      "id": "readme",
+      "title": "Lava Dungeon original license",
+      "kind": "document",
+      "role": "reference",
+      "path": "assets/references/itch/lucifer-lava-dungeon/Readme.txt",
+      "source": {
+        "kind": "external",
+        "author": "Baldur; distributed by Foozle",
+        "url": "https://foozlecc.itch.io/lucifer-lava-dungeon-tileset",
+        "evidence": "assets/references/itch/SOURCES.md and assets/references/itch/lucifer-lava-dungeon/Readme.txt"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "derivedFrom": [
+        "lucifer-lava-dungeon-cc0"
+      ]
+    },
+    {
+      "id": "torch",
+      "title": "Torch animation strip",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/lucifer-lava-dungeon/Torch.png",
+      "source": {
+        "kind": "external",
+        "author": "Baldur; distributed by Foozle",
+        "url": "https://foozlecc.itch.io/lucifer-lava-dungeon-tileset",
+        "evidence": "assets/references/itch/SOURCES.md and assets/references/itch/lucifer-lava-dungeon/Readme.txt"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "note": "CC0 according to the local source records; retained as development reference only."
+      },
+      "width": 128,
+      "height": 32,
+      "derivedFrom": [
+        "lucifer-lava-dungeon-cc0"
+      ]
+    },
+    {
+      "id": "muscle-runner-reference",
+      "title": "Muscle runner reference",
+      "kind": "image",
+      "role": "reference",
+      "path": "assets/references/itch/muscle-runner-reference.png",
+      "source": {
+        "kind": "external",
+        "author": "Roberto Ortiz / Pixel Sprite Shop",
+        "url": "https://pixelspriteshop.itch.io/42pixelcharacter",
+        "evidence": "assets/references/itch/SOURCES.md; author page usage/license reverified 2026-09-07"
+      },
+      "license": {
+        "id": "custom-reference-only",
+        "note": "Local SOURCES.md records restrictions on redistribution of the original pack. Development reference only; do not publish or embed this file."
+      },
+      "width": 456,
+      "height": 159,
+      "review": [
+        "Review repository distribution of this third-party original against the recorded redistribution restrictions."
+      ]
+    },
+    {
+      "id": "unicorn-chibi-atlas",
+      "title": "Prismatic unicorn runtime atlas",
+      "kind": "image",
+      "role": "runtime",
+      "path": "assets/runtime/unicorn-chibi-atlas.png",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project / Codex",
+        "evidence": "assets/concepts/unicorn-runner.piskel; tools/piskel.mjs; docs/map-asset-workspace.md"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "New edited project artwork based on the original unicorn. Hyper Light Drifter is a stylistic reference; no assets from that game are included."
+      },
+      "width": 160,
+      "height": 56,
+      "budgetBytes": 3000,
+      "exportName": "RUNNER",
+      "derivedFrom": [
+        "unicorn-runner-piskel"
+      ],
+      "frames": {
+        "width": 32,
+        "height": 56,
+        "names": [
+          "contact",
+          "stride-left",
+          "stride-right-mirrored",
+          "jump",
+          "impact"
+        ]
+      }
+    },
+    {
+      "id": "runner-fallback-and-effects",
+      "title": "Runner geometry fallback, palette, gears, lamps, and sparks",
+      "kind": "procedural",
+      "role": "runtime",
+      "path": "src/art.mjs",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project / Codex",
+        "evidence": "src/palette.mjs; docs/prismatic-assets.md; user-directed visual restyle on 2026-09-07"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      }
+    },
+    {
+      "id": "furnace-environment",
+      "title": "Furnace palette, scenery, obstacles, and HUD",
+      "kind": "procedural",
+      "role": "runtime",
+      "path": "src/render.mjs",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project / Codex",
+        "evidence": "src/palette.mjs; docs/prismatic-assets.md; user-directed visual restyle on 2026-09-07"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      }
+    },
+    {
+      "id": "red-stage-layout",
+      "title": "Five-section stage geometry and obstacle tuples",
+      "kind": "procedural",
+      "role": "runtime",
+      "path": "src/stage.mjs",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project; individual author and creation tool not recorded",
+        "evidence": "README.md; git commits 268819f and 8c64e96"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      }
+    },
+    {
+      "id": "unicorn-chibi-atlas-legacy",
+      "title": "Previous rainbow runner atlas",
+      "kind": "image",
+      "role": "concept",
+      "path": "assets/concepts/unicorn-chibi-atlas-legacy.png",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project; individual author and creation tool not recorded",
+        "evidence": "README.md; git commits 268819f and 8c64e96"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Original project work according to README; detailed creation records are not available."
+      },
+      "width": 160,
+      "height": 56,
+      "derivedFrom": [
+        "unicorn-chibi-sprite-sheet"
+      ]
+    },
+    {
+      "id": "prismatic-palette",
+      "title": "Prismatic ruins and runner palette",
+      "kind": "procedural",
+      "role": "runtime",
+      "path": "src/palette.mjs",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project / Codex",
+        "evidence": "docs/prismatic-assets.md; user-directed restyle on 2026-09-07"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Project palette authored for this game; stylistic reference only to Hyper Light Drifter."
+      }
+    },
+    {
+      "id": "unicorn-prismatic-source",
+      "title": "Prismatic unicorn edited source sheet",
+      "kind": "image",
+      "role": "concept",
+      "path": "assets/concepts/unicorn-prismatic-source.png",
+      "source": {
+        "kind": "project",
+        "author": "OpenAI ImageGen; project-directed edit by Codex",
+        "evidence": "docs/prismatic-assets.md and docs/prismatic-image-prompts.md; 2026-09-07"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "New edited project artwork based on the original unicorn. Hyper Light Drifter is a stylistic reference; no assets from that game are included."
+      },
+      "width": 2120,
+      "height": 742,
+      "derivedFrom": [
+        "unicorn-chibi-atlas-legacy",
+        "unicorn-chibi-sprite-sheet"
+      ]
+    },
+    {
+      "id": "unicorn-runner-piskel",
+      "title": "Editable unicorn Piskel project",
+      "kind": "document",
+      "role": "concept",
+      "path": "assets/concepts/unicorn-runner.piskel",
+      "source": {
+        "kind": "project",
+        "author": "Crimson Furnace project / Codex",
+        "evidence": "Lossless migration followed by pixel-position-preserving skyway palette remap on 2026-09-08; tools/piskel.mjs; docs/map-asset-workspace.md"
+      },
+      "license": {
+        "id": "project-original",
+        "note": "Editable project source initialized from the prior project artwork; previous source provenance still applies."
+      },
+      "derivedFrom": [
+        "unicorn-prismatic-source"
+      ]
+    }
+  ]
+}

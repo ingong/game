@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "stages": [
+    {
+      "id": 1,
+      "name": "RED 1",
+      "state": "playable",
+      "visual": {
+        "sky": "#ffd9d2",
+        "void": "#f2bdc8",
+        "road": "#9c5265",
+        "accent": "#ff526e",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    },
+    {
+      "id": 2,
+      "name": "ORANGE 2",
+      "state": "playable",
+      "visual": {
+        "sky": "#ffe4ca",
+        "void": "#f5ccb7",
+        "road": "#a8664d",
+        "accent": "#ff994d",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    },
+    {
+      "id": 3,
+      "name": "YELLOW 3",
+      "state": "playable",
+      "visual": {
+        "sky": "#fff2c4",
+        "void": "#e6dfad",
+        "road": "#8b784b",
+        "accent": "#ffe16b",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    },
+    {
+      "id": 4,
+      "name": "GREEN 4",
+      "state": "playable",
+      "visual": {
+        "sky": "#d6f3dc",
+        "void": "#b9ded4",
+        "road": "#507b70",
+        "accent": "#58d995",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    },
+    {
+      "id": 5,
+      "name": "BLUE 5",
+      "state": "playable",
+      "visual": {
+        "sky": "#c4e9f5",
+        "void": "#c1d9ef",
+        "road": "#526f96",
+        "accent": "#4cc9f0",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    },
+    {
+      "id": 6,
+      "name": "INDIGO 6",
+      "state": "playable",
+      "visual": {
+        "sky": "#d4ddff",
+        "void": "#c2c4ec",
+        "road": "#615b96",
+        "accent": "#7a88ff",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    },
+    {
+      "id": 7,
+      "name": "VIOLET 7",
+      "state": "playable",
+      "visual": {
+        "sky": "#efdbff",
+        "void": "#dcc3eb",
+        "road": "#805c92",
+        "accent": "#be7bff",
+        "tiles": true,
+        "edges": true,
+        "ripples": 0,
+        "landmarks": false,
+        "spacing": 80,
+        "scale": 0.65
+      }
+    }
+  ]
+}

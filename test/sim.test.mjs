@@ -1,7 +1,8 @@
+import {REFERENCE_STAGE as RED_STAGE} from './fixtures/reference-course.mjs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRun, restartRun, stepRun } from '../src/sim.mjs'
-import { RED_STAGE, BRIDGE, GAP, HURDLE } from '../src/stage.mjs'
+import { BRIDGE, GAP, HURDLE, FIRE, SPRING } from '../src/stage.mjs'
 
 const stage = { timeLimit:45, length:5000, obstacles:[] }
 const idle = { left:false, right:false, up:false, down:false, jumpPressed:false }
@@ -165,4 +166,43 @@ test('a stumble at the finish cannot turn into a timeout failure', () => {
   let run = { ...createRun(short), mode:'running', speed:30 }
   run = stepRun(run, idle, .1, short)
   assert.equal(run.mode, 'success')
+})
+
+test('active lightning produces a visible shock and temporarily blocks acceleration', () => {
+  const stage={...RED_STAGE,obstacles:[[FIRE,100,0,12,12,10,2.4,0]]}
+  let run={...createRun(stage),mode:'running',time:1.2,z:100,speed:29}
+  run=stepRun(run,{...idle,up:true},1/120,stage)
+  assert.ok(run.shock>0)
+  assert.equal(run.speed,0)
+  const id=run.stumbleId
+  run=stepRun(run,{...idle,up:true,jumpPressed:true},.1,stage)
+  assert.equal(run.speed,0)
+  assert.equal(run.stumbleId,id)
+  assert.equal(run.jumps,0)
+})
+
+test('final spring sequence launches a grounded runner across all three gaps', () => {
+  assert.equal(RED_STAGE.obstacles.filter(o=>o[0]===SPRING).length,3)
+  let run={...createRun(RED_STAGE),mode:'running',time:30,z:842,speed:29.2}
+  let launches=0
+  for(let i=0;i<900&&run.mode==='running'&&run.z<980;i++) {
+    const next=stepRun(run,{...idle,up:true},1/120,RED_STAGE)
+    if(next.springId>run.springId)launches++
+    run=next
+  }
+  assert.equal(run.mode,'running',`failed at ${run.z}`)
+  assert.ok(run.z>=980)
+  assert.equal(launches,3)
+})
+
+test('inactive lightning is safe and shock recovery does not repeatedly hit the same emitter', () => {
+  const stage={...RED_STAGE,obstacles:[[FIRE,100,0,12,12,10,2.4,0]]}
+  const inactive={...createRun(stage),mode:'running',time:2.2,z:100,speed:10}
+  assert.equal(stepRun(inactive,{...idle,up:true},1/120,stage).shock,0)
+  let run=stepRun({...inactive,time:1.2},{...idle,up:true},1/120,stage)
+  const hits=run.stumbleId
+  for(let i=0;i<84;i++)run=stepRun(run,{...idle,up:true},1/120,stage)
+  assert.equal(run.shock,0)
+  assert.ok(run.speed>0)
+  assert.equal(run.stumbleId,hits)
 })
