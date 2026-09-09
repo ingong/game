@@ -9,7 +9,7 @@ import { BRIDGE, FIRE, GAP, HURDLE, PISTON, RED_STAGE, STAGES, obstacleBounds, r
 const STEP = 1 / 120
 const SOLIDS = new Set([FIRE, HURDLE, PISTON])
 
-function cleanPlaythrough(stage=RED_STAGE) {
+function cleanPlaythrough(stage=RED_STAGE,options={}) {
   let run = { ...createRun(stage), mode:'running' }
   const jumped = new Set()
   const doubled = new Set()
@@ -70,6 +70,10 @@ function cleanPlaythrough(stage=RED_STAGE) {
       }
       if(!safe){input.up=false;input.down=true;brakingFrames++}
     }
+    // A low hurdle can be jumped when a preceding moving hazard keeps us in its lane.
+    if(solid?.[0]===HURDLE&&solid[5]<=3&&run.grounded&&solid[1]-run.z>0&&solid[1]-run.z<9&&Math.abs(run.x-solid[2])<solid[3]/2+2)input.jumpPressed=true
+    if(options.steer===false){input.left=false;input.right=false}
+    if(options.jump===false)input.jumpPressed=false
     if(input.jumpPressed)jumps++
     const next = stepRun(run, input, STEP, stage)
     if (next.stumbleId > run.stumbleId) hits.push(next.hitIndex)
@@ -136,4 +140,18 @@ test('specialist courses require timing, jumping and spring launches',()=>{
   assert.equal(storm.run.mode,'success')
   assert.ok(cleanPlaythrough(STAGES[3]).jumps>=5)
   assert.equal(cleanPlaythrough(STAGES[5]).run.springId,6)
+})
+
+
+test('stage one already requires jumping, steering and a timing adjustment',()=>{
+  const clean=cleanPlaythrough(RED_STAGE)
+  assert.equal(clean.run.mode,'success')
+  assert.deepEqual(clean.hits,[])
+  assert.ok(clean.jumps>=4)
+  assert.ok(clean.brakingFrames>0)
+  const straight=cleanPlaythrough(RED_STAGE,{steer:false})
+  assert.ok(straight.hits.length>0||straight.run.mode==='failure','running only down the center must not clear cleanly')
+  const grounded=cleanPlaythrough(RED_STAGE,{jump:false})
+  assert.equal(grounded.run.mode,'failure')
+  assert.equal(grounded.run.failReason,'LAVA')
 })

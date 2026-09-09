@@ -28,7 +28,7 @@ export const OBSTACLE_LABELS=[
   ['무지개 도약대','낮은 자동 도약. 착지 후 다음 틈에 맞춰 재도약합니다.'],
   ['별빛 발사대','더 높은 자동 도약. 긴 체공 중 다음 착지 지점을 고릅니다.']
 ]
-export function obstacleRecipe(id,z,x=0) {
-  const [type,width,depth,height,period,phase]=OBSTACLE_RECIPES[id-1]
-  return [type,z,x,width,depth,height,period,phase,id]
+export function obstacleRecipe(id,z,x=0,phase) {
+  const [type,width,depth,height,period,basePhase]=OBSTACLE_RECIPES[id-1]
+  return [type,z,x,width,depth,height,period,phase??basePhase,id]
 }
