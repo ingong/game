@@ -261,28 +261,6 @@
       ]
     },
     {
-      "id": "muscle-runner-reference",
-      "title": "Muscle runner reference",
-      "kind": "image",
-      "role": "reference",
-      "path": "assets/references/itch/muscle-runner-reference.png",
-      "source": {
-        "kind": "external",
-        "author": "Roberto Ortiz / Pixel Sprite Shop",
-        "url": "https://pixelspriteshop.itch.io/42pixelcharacter",
-        "evidence": "assets/references/itch/SOURCES.md; author page usage/license reverified 2026-09-07"
-      },
-      "license": {
-        "id": "custom-reference-only",
-        "note": "Local SOURCES.md records restrictions on redistribution of the original pack. Development reference only; do not publish or embed this file."
-      },
-      "width": 456,
-      "height": 159,
-      "review": [
-        "Review repository distribution of this third-party original against the recorded redistribution restrictions."
-      ]
-    },
-    {
       "id": "unicorn-chibi-atlas",
       "title": "Prismatic unicorn runtime atlas",
       "kind": "image",

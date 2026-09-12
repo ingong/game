@@ -41,3 +41,7 @@ into `src/` or `dist/`, and the submission build must not include this folder.
 The shipped game will recreate selected motifs with compact palette data,
 reusable geometry, procedural repetition, and Canvas animation. Original PNG,
 ASEPRITE, and ZIP files remain outside the runtime and submission package.
+
+## Submission cleanup — 2026-09-13
+
+The muscle runner reference image is excluded from the submission source tree due to the recorded redistribution restriction. Only its source link and usage notes remain. The local reference is preserved outside the published asset tree; it is not needed to build or play the game. Historical Git commits may still contain the file; history has not been rewritten.
